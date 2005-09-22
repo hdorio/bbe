@@ -1,0 +1,416 @@
+This is bbe.info, produced by makeinfo version 4.7 from bbe.texi.
+
+   This file documents the `bbe' - binary block editor
+
+   Copyright (C) 2005 Timo Savinen
+
+     Permission is granted to make and distribute verbatim copies of
+     this manual provided the copyright notice and this permission
+     notice are preserved on all copies.
+
+     Permission is granted to copy and distribute modified versions of
+     this manual under the conditions for verbatim copying, provided
+     that the entire resulting derived work is distributed under the
+     terms of a permission notice identical to this one.
+
+     Permission is granted to copy and distribute translations of this
+     manual into another language, under the above conditions for
+     modified versions.
+
+
+File: bbe.info,  Node: Top,  Next: Overview,  Prev: (dir),  Up: (dir)
+
+bbe
+***
+
+This file documents the `bbe' - binary block editor
+
+   Copyright (C) 2005 Timo Savinen
+
+     Permission is granted to make and distribute verbatim copies of
+     this manual provided the copyright notice and this permission
+     notice are preserved on all copies.
+
+     Permission is granted to copy and distribute modified versions of
+     this manual under the conditions for verbatim copying, provided
+     that the entire resulting derived work is distributed under the
+     terms of a permission notice identical to this one.
+
+     Permission is granted to copy and distribute translations of this
+     manual into another language, under the above conditions for
+     modified versions.
+
+* Menu:
+
+* Overview::                    Preliminary information.
+* Samples::                     Samples using `bbe'.
+* Invoking bbe::                How to run `bbe'.
+* bbe programs::                How `bbe' works.
+* Problems::                    Reporting bugs.
+
+
+File: bbe.info,  Node: Overview,  Next: Samples,  Prev: Top,  Up: Top
+
+1 Preliminary information
+*************************
+
+The `bbe' program is a sed-like editor for binary files. `bbe' performs
+basic byte related transformations on blocks of input stream. `bbe' is
+non-interactive command line tool and can be used as a part of a
+pipeline. `bbe' makes only one pass over input stream.
+
+
+File: bbe.info,  Node: Samples,  Next: Invoking bbe,  Prev: Overview,  Up: Top
+
+2 Samples using `bbe'
+*********************
+
+Few examples of running `bbe':
+
+`bbe -b "/\x80\x50\x0e/:12" -e "d 0 3" -e "c BCD ASC" -e "I \x0a" -e "w /tmp/numbers" -o /dev/null /tmp/bdata'
+     Task here is to extract BCD coded numbers from the file
+     `/tmp/bdata' and write them in ascii format with newline to file
+     `/tmp/numbers'.  12 bytes long blocks containing the BCD-numbers
+     start with three byte sequence of values `0x80', `0x50' and
+     `0x0e'. First three bytes (the block start sequence) are removed
+     (`d 0 3') rest of the block is transformed from BCD to Ascii (`c
+     BCD ASC') and a newline character is inserted at the end of the
+     block (`I \x0a').  All transformed blocks are written to
+     `/tmp/numbers' (`w /tmp/numbers'). Nothing is written to the
+     output (`-o /dev/null').
+`bbe -b ":525" -e "i 524 \x0a" -o /tmp/data_with_nl /tmp/data'
+     A newline is added after every 525'th byte of the file
+     `/tmp/data'. Data with newlines is written to `/tmp/data_with_nl'.
+`bbe -b ":526" -e "d 525 1" -o /tmp/data /tmp/data_with_nl'
+     Every 526'th byte (inserted newline in previous example) is
+     removed from the file `/tmp/data_with_nl'. Data without newlines
+     is written to `/tmp/data'.
+`bbe -e "s/\x0d\x0a/\x0a/"'
+     Same effect as has command `dos2unix'.
+
+
+File: bbe.info,  Node: Invoking bbe,  Next: bbe programs,  Prev: Samples,  Up: Top
+
+3 How to run `bbe'
+******************
+
+`bbe' accepts several commands to operate on blocks. Commands are
+executed in the same order as they appear in command line or in a
+script file.  Order is significant, because the changes made by
+previous commands are seen by next commands.
+
+* Menu:
+
+* Invocation::      Program invocation
+* Block::           Block definition
+* Commands::        bbe commands
+* Limits::          Limitations
+
+
+File: bbe.info,  Node: Invocation,  Next: Block,  Up: Invoking bbe
+
+3.1 Program invocation
+======================
+
+The format for running the `bbe' program is:
+
+     bbe OPTION ...
+
+   `bbe' supports the following options:
+
+`-b BLOCK'
+`--block=BLOCK'
+     Block definition.
+
+`-e COMMAND'
+`--expression=COMMAND'
+     Add command to the commands to be executed.
+
+`-f SCRIPT-FILE'
+`--file=SCRIPT-FILE'
+     Add commands from SCRIPT-FILE to the commands to be executed.
+
+`-o FILE'
+`--output=FILE'
+     Write output to FILE instead of standard output.
+
+`-?'
+`--help'
+     Print an informative help message describing the options and then
+     exit successfully.
+
+`-V'
+`--version'
+     Print the version number of `bbe' and then exit successfully.
+
+   All remaining options are names of input files, if no input files
+are specified, then the standard input is read.
+
+
+File: bbe.info,  Node: Block,  Next: Commands,  Prev: Invocation,  Up: Invoking bbe
+
+3.2 Block definition
+====================
+
+`bbe' devides the input stream to blocks defined by the `-b' option. If
+block is not defined, the whole input stream is considered as one
+block. Commands have effect only inside a block, rest of the input
+stream remains untouched. Currently `bbe' supports only one block
+definition per invocation. If input stream consists of different blocks,
+several `bbe's can be combined in a pipeline.
+
+   A block can be defined several ways:
+
+`N:M'
+     Block starts at offset N of input stream (first byte is 0). Block
+     is M bytes long. This definition allows only one block to be
+     defined.
+
+`:M'
+     The whole input stream is divided to M-size blocks.
+
+`/START/:/STOP/'
+     Blocks start with sequence START and end with sequence STOP. Both
+     START and STOP are included to blocks.
+
+`/START/:'
+     Blocks start with sequence START and ends at next occurrence of
+     START. Only the first START is included to block.
+
+`:/STOP/'
+     Blocks start at the beginning of input stream or after the end of
+     previous block. Block ends at first occurrence of STOP.  Only the
+     last STOP is included to blocks.
+
+   It is possible to use c-like byte values in N, M, START and STOP.
+Values in START and STOP must be escaped with `\', `\' can be escaped
+as `\\'.
+
+   Byte values can be expressed in decimal, octal or hexadecimal e.g.
+in START and STOP:
+
+`\123, \32 or \0'
+     Decimal values
+
+`\012, \08 or \0278'
+     Octal values
+
+`\x0a, \x67 or \xff'
+     Hexadecimal values
+
+   Values of N and M can be given in decimal, octal and hexadecimal:
+
+`123, 32 or 112232'
+     Decimal values
+
+`0128, 08123 or 0'
+     Octal values
+
+`x456a, x167 or xffde'
+     Hexadecimal values
+
+
+File: bbe.info,  Node: Commands,  Next: Limits,  Prev: Block,  Up: Invoking bbe
+
+3.3 `bbe' commands
+==================
+
+Commands in `bbe' can be divided in two groups: Block related commands
+and byte related commands. Block related commands operate at block
+level e.g. remove a block.  Byte related commands work allways inside a
+block and they don't have effect beyond the block boundaries.
+
+   Same escape codes for byte values in STRINGs can be used as in START
+and STOP of block definition.
+
+Block commands are:
+-------------------
+
+`A STRING'
+     Write the STRING to output stream before the block.
+
+`D [N]'
+     Delete the N'th block. If N is not defined all blocks are deleted
+     from output stream.  *Note*: First block is number one.
+
+`I STRING'
+     Write the STRING to output stream after the block.
+
+`J N'
+     Commands appearing after this command have no effect until N
+     blocks are found. Means "Jump first N blocks".  *Note*: Commands
+     that are defined before this command have effect on every block.
+
+`L N'
+     Commands appearing after this command have no effect after N
+     blocks are found. Means "Leave blocks after N'th block".  *Note*:
+     Commands that are defined before this command have effect on every
+     block.
+
+Byte commands are:
+------------------
+
+*Note*: The N in byte commands is offset from the beginning of current
+block, first byte is number zero.
+
+`c FROM TO'
+     Converts bytes from FROM to TO. Currently supported formats are:
+    `ASC'
+          Ascii
+
+    `BCD'
+          Binary Coded Decimal
+     *Note:* Bytes, that cannot be converted are passed through as they
+     are. e.g. in ASC -> BCD conversion, ASCII characters not in range
+     `'0'' - `'9'' are not converted.
+
+`d N M'
+     Delete M bytes starting from the offset  N.
+
+`i N STRING'
+     Insert STRING after byte number N.
+
+`j N'
+     Commands appearing after `j'-command have no effect concerning
+     bytes 0-N of the block.
+
+`l N'
+     Commands appearing after `l'-command have no effect concerning
+     bytes starting from the byte number N of the block.
+
+`r N STRING'
+     Replace bytes with STRING starting at the byte number N of the
+     block.
+
+`s/SEARCH/REPLACE/'
+     All occurences of SEARCH are replaced by REPLACE. REPLACE can be
+     empty. Separator `/' can be replaced by any character not present
+     in SEARCH or REPLACE.
+
+`w `file''
+     Contents of blocks are written to file `file'. *Note*: Data
+     inserted by commands `A' and `I' are not written to file `file'
+     and `J' and `L' commands have no effect on `w'-commands.
+
+`y/SOURCE/DEST/'
+     Translate bytes in SOURCE to the corresponding bytes in DEST.
+     SOURCE and DEST must have equal length.  Separator `/' can be
+     replaced by any character not present in SOURCE or DEST.
+
+
+File: bbe.info,  Node: Limits,  Prev: Commands,  Up: Invoking bbe
+
+3.4 Limitations
+===============
+
+At least in GNU/Linux `bbe' should be able to handle big files (>4GB),
+other systems are  not tested.
+
+   There are however, some limitations in block and command definitions:
+
+_Strings in block definition_
+_Search string in `s' command_
+     are limited to _16384_ bytes.
+_Total data to be inserted by `s' and `i' commands_
+     is _245760_ bytes, that means the total data in command
+     definitions, of course it can be inserted several times.
+
+
+File: bbe.info,  Node: bbe programs,  Next: Problems,  Prev: Invoking bbe,  Up: Top
+
+4 How `bbe' works
+*****************
+
+`bbe' scans the input stream just once, so the last block may differ
+from the block definition, because `bbe' doesn't 'peek' the end of the
+input stream. Last block may be shorter than defined, e.g. if block is
+defined as `/string/:128' and if the end of input stream is found
+before 128'th byte of the last block is reached, the last block remains
+shorter.
+
+Basic execution cycle:
+----------------------
+
+  1. Start of the block is searched. If found, data before block is
+     written to output stream and step 2 is executed.
+
+  2. Block commands affecting the start of the block (`A', `D' and `J')
+     are executed.
+
+  3. The block is scanned byte by byte and all byte commands (lower
+     case letters) are executed.  *Note*: Commands are executed on
+     results of previous commands, if e.g. the first byte of the block
+     is deleted, the following  commands don't 'see' the removed byte.
+
+  4. When end of the block is reached the end of the block commands
+     (`I') are executed.
+
+  5. Next block is searched, data between the blocks is written to
+     output stream.
+
+Few examples:
+-------------
+
+`echo "The quick brown fox jumps over a lazy dog" | bbe -b "/The/:21" -e "j 4" -e "s/ /X/"'
+     Output is
+          The quickXbrownXfoxXjumps over a lazy dog
+     The only block in this is
+          The quick brown fox j
+     All spaces in the block are converted to X's, before conversion
+     first 4 bytes are skipped.
+
+`echo "The quick brown fox jumps over a lazy dog" | bbe -b ":/ /" -e "J 1" -e "I \x0a"'
+     Output is:
+          The quick
+          brown
+          fox
+          jumps
+          over
+          a
+          lazy
+          dog
+     All blocks end at space, a newline character is inserted after
+     every block except the first block.
+
+`echo "The quick brown fox jumps over a lazy dog" | bbe  -e "r 4 fast\x20" -e "s/f/c/"'
+     Output is:
+          The cast  brown cox jumps over a lazy dog
+     Also the `f' in `fast' is converted to `c'.
+
+`echo "1234567890" | bbe -b ":1"  -e "L 9" -e "I -"'
+     Output is
+          1-2-3-4-5-6-7-8-9-0
+     Minus is inserted after every 1 byte long block,but not after 9'th
+     block.
+
+
+File: bbe.info,  Node: Problems,  Prev: bbe programs,  Up: Top
+
+5 Reporting Bugs
+****************
+
+If you find a bug in `bbe', please send electronic mail to
+<tjsa@iki.fi>.  Include the version number, which you can find by
+running `bbe --version'.  Also include in your message the output that
+the program produced and the output you expected.
+
+   If you have other questions, comments or suggestions about `bbe',
+contact the author via electronic mail to <tjsa@iki.fi>.  The author
+will try to help you out, although he may not have time to fix your
+problems.
+
+
+
+Tag Table:
+Node: Top766
+Node: Overview1811
+Node: Samples2201
+Node: Invoking bbe3599
+Node: Invocation4117
+Node: Block4980
+Node: Commands6784
+Node: Limits9572
+Node: bbe programs10123
+Node: Problems12406
+
+End Tag Table

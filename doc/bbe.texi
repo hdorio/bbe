@@ -1,0 +1,413 @@
+\input texinfo @c -*-texinfo-*-
+@c This file uses the @command command introduced in Texinfo 4.0.
+@c %**start of header
+@setfilename bbe.info
+@settitle bbe - binary block editor
+@finalout
+@c %**end of header
+
+@set VERSION 0.1.0
+
+@copying
+This file documents the @command{bbe} - binary block editor
+
+Copyright @copyright{} 2005 Timo Savinen
+
+@quotation
+Permission is granted to make and distribute verbatim copies of
+this manual provided the copyright notice and this permission notice
+are preserved on all copies.
+
+Permission is granted to copy and distribute modified versions of this
+manual under the conditions for verbatim copying, provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+Permission is granted to copy and distribute translations of this manual
+into another language, under the above conditions for modified versions.
+@end quotation
+@end copying
+
+@titlepage
+@title bbe
+@subtitle binary block editor
+@subtitle Version @value{VERSION}
+@author by Timo Savinen
+
+@page
+@vskip 0pt plus 1filll
+@insertcopying
+@end titlepage
+
+@c All the nodes can be updated using the EMACS command
+@c texinfo-every-node-update, which is normally bound to C-c C-u C-e.
+@ifnottex
+@node Top, Overview, (dir), (dir)
+@top bbe
+
+@insertcopying
+@end ifnottex
+
+
+@c All the menus can be updated with the EMACS command
+@c texinfo-all-menus-update, which is normally bound to C-c C-u C-a.
+@menu
+* Overview::                    Preliminary information.
+* Samples::                     Samples using @command{bbe}.
+* Invoking bbe::                How to run @command{bbe}.
+* bbe programs::                How @command{bbe} works.
+* Problems::                    Reporting bugs.
+@end menu
+
+@node Overview, Samples, Top, Top
+@chapter Preliminary information
+@cindex greetings
+@cindex overview
+
+The @command{bbe} program is a sed-like editor for binary files. @command{bbe} 
+performs basic byte related transformations on blocks of input stream. @command{bbe} is non-interactive command line tool and
+can be used as a part of a pipeline. @command{bbe} makes only one pass over input stream. 
+
+@node Samples, Invoking bbe, Overview, Top
+@chapter Samples using @command{bbe}
+@cindex sample
+
+Few examples of running @command{bbe}:
+
+@table @samp
+@item bbe -b "/\x80\x50\x0e/:12" -e "d 0 3" -e "c BCD ASC" -e "I \x0a" -e "w /tmp/numbers" -o /dev/null /tmp/bdata
+Task here is to extract BCD coded numbers from the file @file{/tmp/bdata} and write them
+in ascii format with newline to file @file{/tmp/numbers}. 
+12 bytes long blocks containing the BCD-numbers start with three byte sequence of 
+values @samp{0x80}, @samp{0x50} and @samp{0x0e}. First three bytes (the block start sequence)
+are removed (@samp{d 0 3}) rest of the block is transformed from BCD to Ascii (@samp{c BCD ASC}) and a newline character is
+inserted at the end of the block (@samp{I \x0a}).
+All transformed blocks are written to @file{/tmp/numbers} (@samp{w /tmp/numbers}). Nothing is written to
+the output (@samp{-o /dev/null}).
+@*
+
+@item bbe -b ":525" -e "i 524 \x0a" -o /tmp/data_with_nl /tmp/data
+A newline is added after every 525'th byte of the file @file{/tmp/data}. Data with newlines is written to @file{/tmp/data_with_nl}.
+@*
+
+@item bbe -b ":526" -e "d 525 1" -o /tmp/data /tmp/data_with_nl
+Every 526'th byte (inserted newline in previous example) is removed from the file @file{/tmp/data_with_nl}. Data without newlines is written to @file{/tmp/data}.
+@*
+
+@item bbe -e "s/\x0d\x0a/\x0a/"
+Same effect as has command @command{dos2unix}.
+@end table
+
+@node Invoking bbe, bbe programs, Samples, Top
+@chapter How to run @command{bbe}
+@cindex running bbe
+@cindex using
+
+@command{bbe} accepts several commands to operate on blocks. Commands are
+executed in the same order as they appear in command line or in a script file.
+Order is significant, because the changes made by previous commands are
+seen by next commands.
+
+@menu
+* Invocation::      Program invocation
+* Block::           Block definition
+* Commands::        bbe commands
+* Limits::          Limitations
+@end menu
+
+@node Invocation, Block, , Invoking bbe
+@section Program invocation
+@cindex options
+
+The format for running the @command{bbe} program is:
+
+@example
+bbe @var{option} @dots{}
+@end example
+
+@code{bbe} supports the following options:
+
+@c Formatting copied from the Texinfo 4.0 manual.
+@table @code
+@item -b @var{BLOCK}
+@itemx --block=@var{BLOCK}
+Block definition.
+
+
+@item -e @var{COMMAND}
+@itemx --expression=@var{COMMAND}
+Add command to the commands to be executed.
+
+
+@item -f @var{script-file}
+@itemx --file=@var{script-file}
+Add commands from @var{script-file} to the commands to be executed.
+
+
+@item -o @var{file}
+@itemx --output=@var{file}
+Write output to @var{file} instead of standard output.
+
+
+@item -?
+@itemx --help
+Print an informative help message describing the options and then exit
+successfully.
+
+
+@item -V
+@itemx --version
+Print the version number of @command{bbe} and then exit successfully.
+@end table
+
+All remaining options are names of input files, if no input files are specified, then the standard input is read.
+
+@node Block, Commands, Invocation, Invoking bbe
+@section Block definition
+@cindex block
+
+@command{bbe} devides the input stream to blocks defined by the @code{-b} option. If block is
+not defined, the whole input stream is considered as one block. Commands have effect only inside a block, rest of the input stream
+remains untouched. Currently @command{bbe} supports only one block definition per invocation. If input stream consists of different blocks, 
+several @command{bbe}s can be combined in a pipeline.
+
+A block can be defined several ways:
+
+@table @code
+@item @var{N}:@var{M}
+Block starts at offset @var{N} of input stream (first byte is 0). Block is @var{M} bytes long. This definition allows
+only one block to be defined.
+
+@item :@var{M}
+The whole input stream is divided to @var{M}-size blocks. 
+
+@item /@var{start}/:/@var{stop}/
+Blocks start with sequence @var{start} and end with sequence @var{stop}. Both @var{start} and @var{stop} are included to blocks.
+
+@item /@var{start}/:
+Blocks start with sequence @var{start} and ends at next occurrence of @var{start}. Only the first @var{start} is included to block.
+
+@item :/@var{stop}/
+Blocks start at the beginning of input stream or after the end of previous block. Block ends at first occurrence of @var{stop}.
+Only the last @var{stop} is included to blocks.
+@end table
+
+It is possible to use c-like byte values in @var{N}, @var{M}, @var{start} and @var{stop}. 
+Values in @var{start} and @var{stop} must be escaped with @code{\}, @code{\} can be escaped as @code{\\}.
+
+Byte values can be expressed in decimal, octal or hexadecimal e.g. in @var{start} and @var{stop}:
+
+@table @code
+@item \123, \32 or \0
+Decimal values
+
+@item \012, \08 or \0278
+Octal values
+
+@item \x0a, \x67 or \xff
+Hexadecimal values
+@end table
+
+Values of @var{N} and @var{M} can be given in decimal, octal and hexadecimal:
+
+@table @code
+@item 123, 32 or 112232
+Decimal values
+
+@item 0128, 08123 or 0
+Octal values
+
+@item x456a, x167 or xffde
+Hexadecimal values
+@end table
+
+@node Commands, Limits, Block, Invoking bbe
+@section @command{bbe} commands
+@cindex commands
+
+Commands in @command{bbe} can be divided in two groups: Block related commands
+and byte related commands. Block related commands operate at block level e.g. remove a block. 
+Byte related commands work allways inside a block and they don't have effect beyond the block boundaries.
+
+Same escape codes for byte values in @var{string}s can be used as in @var{start} and @var{stop} of block definition.
+
+@subheading Block commands are:
+
+@table @code
+@item A @var{string}
+Write the @var{string} to output stream before the block.
+
+@item D [@var{N}]
+Delete the @var{N}'th block. If @var{N} is not defined all blocks are deleted from output stream. 
+@strong{Note}: First block is number one.
+
+@item I @var{string}
+Write the @var{string} to output stream after the block.
+
+@item J @var{N}
+Commands appearing after this command have no effect until @var{N} blocks are found. Means "Jump first @var{N} blocks".
+@strong{Note}: Commands that are defined before this command have effect on every block.
+
+@item L @var{N}
+Commands appearing after this command have no effect after @var{N} blocks are found. Means "Leave blocks after @var{N}'th block".
+@strong{Note}: Commands that are defined before this command have effect on every block.
+@end table
+
+@subheading Byte commands are:
+
+@strong{Note}: The @var{n} in byte commands is offset from the beginning of current block, first byte is number zero.
+
+@table @code
+@item c @var{from} @var{to}
+Converts bytes from @var{from} to @var{to}. Currently supported formats are:
+@table @code
+@item ASC
+Ascii
+
+@item BCD
+Binary Coded Decimal
+@end table
+@strong{Note:} Bytes, that cannot be converted are passed through as they are. e.g. in ASC -> BCD conversion, ASCII characters not 
+in range @code{'0'} -- @code{'9'} are not converted.
+
+@item d @var{n} @var{m} 
+Delete @var{m} bytes starting from the offset  @var{n}.
+
+@item i @var{n} @var{string}
+Insert @var{string} after byte number @var{n}.
+
+@item j @var{n}
+Commands appearing after @code{j}-command have no effect concerning bytes 0-@var{n} of the block.
+
+@item l @var{n}
+Commands appearing after @code{l}-command have no effect concerning bytes starting from the byte number @var{n} of the block.
+
+@item r @var{n} @var{string}
+Replace bytes with @var{string} starting at the byte number @var{n} of the block.
+
+@item s/@var{search}/@var{replace}/
+All occurences of @var{search} are replaced by @var{replace}. @var{replace} can be empty. Separator @code{/} can be replaced by any
+character not present in @var{search} or @var{replace}.
+
+@item w @file{file}
+Contents of blocks are written to file @file{file}. @strong{Note}: Data inserted by commands @code{A} and @code{I} 
+are not written to file @file{file} and @code{J} and @code{L} commands have no effect on @code{w}-commands.
+
+@item y/@var{source}/@var{dest}/
+Translate bytes in @var{source} to the corresponding bytes in @var{dest}. @var{source} and @var{dest} must have equal length.
+Separator @code{/} can be replaced by any character not present in @var{source} or @var{dest}.
+@end table
+
+@node Limits, , Commands, Invoking bbe
+@section Limitations
+@cindex big files
+@cindex limits
+
+At least in GNU/Linux @command{bbe} should be able to handle big files (>4GB), other
+systems are  not tested.
+
+There are however, some limitations in block and command definitions:
+
+@table @emph
+@item Strings in block definition
+@itemx Search string in @code{s} command
+are limited to @emph{16384} bytes.
+@*
+
+@item Total data to be inserted by @code{s} and @code{i} commands
+is @emph{245760} bytes, that means the total data in command definitions, of course it can be inserted several times.
+@*
+@end table
+
+
+@node bbe programs, Problems, Invoking bbe, Top
+@chapter How @command{bbe} works
+
+@command{bbe} scans the input stream just once, so the last block may differ from the block definition, because @command{bbe} doesn't
+'peek' the end of the input stream. Last block may be shorter than defined, e.g. if block is defined as @samp{/string/:128} 
+and if the end of input stream is found before 128'th byte of the last block is reached, the last block remains shorter.
+
+@subheading Basic execution cycle:
+
+@enumerate
+@item
+Start of the block is searched. If found, data before block is written to output stream and
+step 2 is executed.
+
+@item
+Block commands affecting the start of the block (@code{A}, @code{D} and @code{J}) are executed.
+
+@item
+The block is scanned byte by byte and all byte commands (lower case letters) are executed. 
+@strong{Note}: Commands are executed on results of previous commands, if e.g. the first byte of the block is deleted, 
+the following  commands don't 'see' the removed byte. 
+
+@item
+When end of the block is reached the end of the block commands (@code{I}) are executed.
+
+@item 
+Next block is searched, data between the blocks is written to output stream.
+@end enumerate
+
+@subheading Few examples:
+
+@table @samp
+@item echo "The quick brown fox jumps over a lazy dog" | bbe -b "/The/:21" -e "j 4" -e "s/ /X/"
+Output is
+@example
+The quickXbrownXfoxXjumps over a lazy dog
+@end example
+The only block in this is
+@example
+The quick brown fox j
+@end example
+All spaces in the block are converted to X's, before conversion first 4 bytes are skipped.
+
+@item echo "The quick brown fox jumps over a lazy dog" | bbe -b ":/ /" -e "J 1" -e "I \x0a"
+Output is:
+@example
+The quick
+brown
+fox
+jumps
+over
+a
+lazy
+dog
+
+@end example
+All blocks end at space, a newline character is inserted after every block except the first block.
+
+@item echo "The quick brown fox jumps over a lazy dog" | bbe  -e "r 4 fast\x20" -e "s/f/c/"
+Output is:
+@example
+The cast  brown cox jumps over a lazy dog
+@end example
+Also the @code{f} in @code{fast} is converted to @code{c}.
+
+@item echo "1234567890" | bbe -b ":1"  -e "L 9" -e "I -"
+Output is
+@example 
+1-2-3-4-5-6-7-8-9-0
+@end example
+Minus is inserted after every 1 byte long block,but not after 9'th block.
+@end table
+
+
+@node Problems, , bbe programs, Top
+@chapter Reporting Bugs
+@cindex bugs
+@cindex problems
+
+If you find a bug in @command{bbe}, please send electronic mail to
+@email{tjsa@@iki.fi}.  Include the version number, which you can find by
+running @w{@samp{bbe --version}}.  Also include in your message the
+output that the program produced and the output you expected.@refill
+
+If you have other questions, comments or suggestions about
+@command{bbe}, contact the author via electronic mail to
+@email{tjsa@@iki.fi}.  The author will try to help you out, although he
+may not have time to fix your problems.
+
+@contents
+@bye
