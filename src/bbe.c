@@ -20,7 +20,7 @@
  *
  */
 
-/* $Id: bbe.c,v 1.23 2005/09/14 15:48:52 timo Exp $ */
+/* $Id: bbe.c,v 1.30 2005/09/25 10:03:47 timo Exp $ */
 
 #include "bbe.h"
 #ifdef HAVE_GETOPT_H
@@ -28,7 +28,6 @@
 #endif
 
 #include <ctype.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 #ifdef HAVE_STRING_H
@@ -44,7 +43,7 @@ static char *program = "bbe";
 #ifdef VERSION
 static char *version = VERSION;
 #else
-static char *version = "0.1.0";
+static char *version = "0.1.1";
 #endif
 
 #ifdef PACKAGE_BUGREPORT
@@ -54,19 +53,34 @@ static char *email_address = "tjsa@iki.fi";
 #endif
 
 
-
+/* global block */
 struct block block;
+
+/* commands to be executed */
 struct command *commands = NULL;
+
+/* extra info for panic */
 char *panic_info = NULL;
 
+/* -s switch state */
+int output_only_block = 0;
+
+/* c command conversions */
 char *convert_strings[] = {
     "BCDASC",
     "ASCBCD",
           "",
 };
 
-static char short_opts[] = "b:e:f:o:?V";
+/* format types for p command */
+char *p_formats="DOHA";
 
+/* formats for F and B commands */
+char *FB_formats="DOH";
+
+static char short_opts[] = "b:e:f:o:s?V";
+
+#ifdef HAVE_GETOPT_LONG
 static struct option long_opts[] = {
     {"block",1,NULL,'b'},
     {"expression",1,NULL,'e'},
@@ -74,8 +88,10 @@ static struct option long_opts[] = {
     {"output",1,NULL,'o'},
     {"help",0,NULL,'?'},
     {"version",0,NULL,'V'},
+    {"suppress",0,NULL,'s'},
     {NULL,0,NULL,0}
 };
+#endif
 
 void
 panic(char *msg,char *info,char *syserror)
@@ -160,9 +176,9 @@ parse_string(char *string,off_t *length)
         if(*p == '\\')
         {
             p++;
-            if(*p == '\\')
+            if(*p == '\\' || *p == ';')
             {
-                num[i] = *p++;
+                buf[i] = *p++;
             } else
             {
                 j = 0;
@@ -345,6 +361,7 @@ parse_command(char *command_string)
 {
     struct command *curr,*new;
     char *c,*p,*buf;
+    char *f;
     char *token[10];
     char slash_char;
     int i,j;
@@ -352,6 +369,9 @@ parse_command(char *command_string)
    
     p = command_string;
     while(isspace(*p)) p++;              // remove leading spaces
+    if (p[0] == 0) return;      // empty line
+    if (p[0] == '#') return;       // comment
+
     c = strdup(p);
     if(c == NULL) panic("Out of memory",NULL,NULL);
 
@@ -360,9 +380,6 @@ parse_command(char *command_string)
     i++;
     while(token[i - 1] != NULL && i < 10) token[i++] = strtok(NULL," \t\n");
     i--;
-
-    if (token[0] == NULL ) return;      // empty line
-    if (*token[0] == '#') return;       // comment
 
     curr = commands;
     if (curr != NULL)
@@ -468,6 +485,30 @@ parse_command(char *command_string)
             if(new->letter == 'y' && new->s1_len != new->s2_len) panic("Strings in y-command must have equal length",command_string,NULL);
             free(buf);
             break;
+        case 'F':
+        case 'B':
+            if(i > 1 && (strlen(token[1]) != 1)) panic("Error in command",command_string,NULL);
+        case 'p':
+            if(i != 2 || strlen(token[0]) > 1) panic("Error in command",command_string,NULL);
+            new->s1 = parse_string(token[1],&new->s1_len);
+            j = 0;
+            while(new->s1[j] != 0) {
+                new->s1[j] = toupper(new->s1[j]);
+                j++;
+            }
+            if (new->letter == 'p') 
+            {
+                f = p_formats;
+            } else
+            {
+                f = FB_formats;
+            }
+            while(*f != 0 && strchr(new->s1,*f) == NULL) f++;
+            if (*f == 0) panic("Error in command",command_string,NULL);
+            break;
+        case 'N':
+            if(i != 1 || strlen(token[0]) > 1) panic("Error in command",command_string,NULL);
+            break;
         default:
             panic("Unknown command",command_string,NULL);
             break;
@@ -475,30 +516,95 @@ parse_command(char *command_string)
     free(c);
 }
 
-/* read commands from file */
+/* parse commands, commands are separated by ;. ; can be escaped as \;
+   and ;s inside " or ' are not separators
+   */
+void 
+parse_commands(char *command_string)
+{
+    char *c;
+    char *start;
+    int inside_d = 0;  // double
+    int inside_s = 0;  // single 
+
+    c = command_string;
+    start = c;
+
+    while(*start != 0)
+    {
+        switch(*c)
+        {
+            case '\\':
+                c++;
+                break;
+            case '"':
+                if(inside_d) 
+                {
+                    inside_d--;
+                } else
+                {
+                    inside_d++;
+                }
+                break;
+            case '\'':
+                if(inside_s) 
+                {
+                    inside_s--;
+                } else
+                {
+                    inside_s++;
+                }
+                break;
+            case ';':
+                if(!inside_d && !inside_s)
+                {
+                    *c = 0;
+                    parse_command(start);
+                    start = c + 1;
+                }
+                break;
+            case 0:
+                parse_command(start);
+                start = c;
+                break;
+        }
+        c++;
+    }
+}
+    
+
+
+/* parse one command, commands are in list 
+   read commands from file */
 void
 parse_command_file(char *file)
 {
     FILE *fp;
     char *line;
-    char info[1024];
-    size_t line_len = 1024;
+    char *info;
+    size_t line_len = (8*1024);
     int line_no = 0;
 
     line = xmalloc(line_len);
+    info = xmalloc(strlen(file) + 100);
 
     fp = fopen(file,"r");
     if (fp == NULL) panic("Error in opening file",file,strerror(errno));
 
+#ifdef HAVE_GETLINE
     while(getline(&line,&line_len,fp) != -1) 
+#else
+    while(fgets(line,line_len,fp) != NULL)
+#endif
     {
         line_no++;
         sprintf(info,"Error in file '%s' in line %d\n",file,line_no);
         panic_info=info;
-        parse_command(line);
+        parse_commands(line);
     }
 
     free(line);
+    free(info);
     fclose(fp);
     panic_info=NULL;
 }
@@ -507,6 +613,7 @@ void
 help(FILE *stream)
 {
     fprintf(stream,"Usage: %s [OPTION]...\n\n",program);
+#ifdef HAVE_GETOPT_LONG
     fprintf(stream,"-b, --block=BLOCK\n");
     fprintf(stream,"\t\tBlock definition.\n");
     fprintf(stream,"-e, --expression=COMMAND\n");
@@ -515,13 +622,30 @@ help(FILE *stream)
     fprintf(stream,"\t\tAdd commands from script-file to the commands to be executed.\n");
     fprintf(stream,"-o, --output=name\n");
     fprintf(stream,"\t\tWrite output to name instead of standard output.\n");
+    fprintf(stream,"-s, --suppress\n");
+    fprintf(stream,"\t\tSuppress normal output, print only block contents.\n");
     fprintf(stream,"-?, --help\n");
-    fprintf(stream,"\t\tDisplay this help and exit\n");
+    fprintf(stream,"\t\tDisplay this help and exit.\n");
     fprintf(stream,"-V, --Version\n");
-    fprintf(stream,"\t\tShow version and exit\n");
+#else
+    fprintf(stream,"-b BLOCK\n");
+    fprintf(stream,"\t\tBlock definition.\n");
+    fprintf(stream,"-e COMMAND\n");
+    fprintf(stream,"\t\tAdd command to the commands to be executed.\n");
+    fprintf(stream,"-f script-file\n");
+    fprintf(stream,"\t\tAdd commands from script-file to the commands to be executed.\n");
+    fprintf(stream,"-o name\n");
+    fprintf(stream,"\t\tWrite output to name instead of standard output.\n");
+    fprintf(stream,"-s\n");
+    fprintf(stream,"\t\tSuppress normal output, print only block contents.\n");
+    fprintf(stream,"-?\n");
+    fprintf(stream,"\t\tDisplay this help and exit.\n");
+    fprintf(stream,"-V\n");
+#endif
+    fprintf(stream,"\t\tShow version and exit.\n");
     fprintf(stream,"\nAll remaining arguments are names of input files;\n");
     fprintf(stream,"if no input files are specified, then the standard input is read.\n");
-    fprintf(stream,"\nSend bug reports to %s\n",email_address);
+    fprintf(stream,"\nSend bug reports to %s.\n",email_address);
 }
 
 void 
@@ -547,7 +671,11 @@ main (int argc, char **argv)
     int opt;
 
     block.type = 0;
+#ifdef HAVE_GETOPT_LONG
     while ((opt = getopt_long(argc,argv,short_opts,long_opts,NULL)) != -1)
+#else
+    while ((opt = getopt(argc,argv,short_opts)) != -1)
+#endif
     {
         switch(opt)
         {
@@ -556,13 +684,16 @@ main (int argc, char **argv)
                 parse_block(optarg);
                 break;
             case 'e':
-                parse_command(optarg);
+                parse_commands(optarg);
                 break;
             case 'f':
                 parse_command_file(optarg);
                 break;
             case 'o':
                 set_output_file(optarg);
+                break;
+            case 's':
+                output_only_block = 1;
                 break;
             case '?':
                 help(stdout);
@@ -586,7 +717,7 @@ main (int argc, char **argv)
         while(optind < argc) set_input_file(argv[optind++]);
     } else
     {
-        set_input_file(NULL);
+        set_input_file("-");
     }
 
     init_buffer();

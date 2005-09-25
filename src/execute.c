@@ -20,14 +20,14 @@
  *
  */
 
-/* $Id: execute.c,v 1.12 2005/09/14 17:34:44 timo Exp $ */
+/* $Id: execute.c,v 1.17 2005/09/25 10:03:47 timo Exp $ */
 
 #include "bbe.h"
 #include <stdlib.h>
-#include <error.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <string.h>
+#include <ctype.h>
 
 /* tells if current byte should be deleted */
 static int delete_this_byte;
@@ -40,13 +40,70 @@ static struct command *current_commands;
 
 /* commands to be executed at start of buffer */
 /* note J and L must be in every string becaus ethey affect the whole block */
-#define BLOCK_START_COMMANDS "DAJL"
+#define BLOCK_START_COMMANDS "DAJLFBN"
 
 /* commands to be executed for each byte  */
-#define BYTE_COMMANDS "acdirsywjlJL"
+#define BYTE_COMMANDS "acdirsywjplJL"
 
 /* commands to be executed at end of buffer  */
 #define BLOCK_END_COMMANDS "IJL"
+
+ 
+/* byte_to_string, convert byte value to visible string,
+   either hex (H), decimal (D), octal (O) or ascii (A)
+   */
+char *
+byte_to_string(unsigned char byte,char format)
+{
+    static char string[10];
+
+    switch(format)
+    {
+        case 'H':
+            sprintf(string,"x%02x",(int) byte);
+            break;
+        case 'D':
+            sprintf(string,"% 3d",(int) byte);
+            break;
+        case 'O':
+            sprintf(string,"%03o",(int) byte);
+            break;
+        case 'A':
+            sprintf(string,"%c",isprint(byte) ? byte : ' ');
+            break;
+        default:
+            string[0] = 0;
+            break;
+    }
+    return string;
+}
+
+/* convert off_t to string  */
+char *
+off_t_to_string(off_t number,char format)
+{
+    static char string[16];
+
+    switch(format)
+    {
+        case 'H':
+             sprintf(string,"x%llx",(long long) number);
+             break;
+        case 'D':
+             sprintf(string,"%lld",(long long) number);
+             break;
+        case 'O':
+             sprintf(string,"0%llo",(long long) number);
+             break;
+        default:
+             string[0] = 0;
+             break;
+    }
+    return string;
+}
+
+
+
 
 /* execute given commands */
 void
@@ -54,6 +111,8 @@ execute_commands(struct command *c,char *command_letters)
 {
     register int i;
     unsigned char a,b;
+    char *f;
+    char *str;
 
     while(c != NULL)
     {
@@ -215,6 +274,39 @@ execute_commands(struct command *c,char *command_letters)
                         while(c->next != NULL) c = c->next;     // skip rest of commands
                     }
                     break;
+                case 'p':
+                    if (delete_this_byte) break;
+                    f = c->s1;
+                    while(*f != 0)
+                    {
+                        str = byte_to_string(read_byte(),*f);
+                        write_string(str);
+                        f++;
+                        if (*f != 0) 
+                        {
+                            put_byte('-');
+                            write_next_byte();
+                        }
+                    }
+                    put_byte(' ');
+                    break;
+                case 'F':
+                    str = off_t_to_string(in_buffer.stream_offset + (off_t) (in_buffer.read_pos-in_buffer.buffer),c->s1[0]);
+                    write_string(str);
+                    put_byte(':');
+                    write_next_byte();
+                    break;
+                case 'B':
+                    str = off_t_to_string(in_buffer.block_num,c->s1[0]);
+                    write_string(str);
+                    put_byte(':');
+                    write_next_byte();
+                    break;
+                case 'N':
+                    write_string(get_current_file());
+                    put_byte(':');
+                    write_next_byte();
+                    break;
                 case 'w':
                     break;
             }
@@ -300,10 +392,10 @@ execute_program(struct command *c)
 
     while(find_block())
     {
-        delete_this_block = 0;
         reset_rpos(c);
-        execute_commands(c,BLOCK_START_COMMANDS);
+        delete_this_block = 0;
         out_buffer.block_offset = 0;
+        execute_commands(c,BLOCK_START_COMMANDS);
         do
         {
             set_cycle_start();

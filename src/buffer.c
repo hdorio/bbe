@@ -20,11 +20,10 @@
  *
  */
 
-/* $Id: buffer.c,v 1.19 2005/09/14 15:48:52 timo Exp $ */
+/* $Id: buffer.c,v 1.25 2005/09/25 10:03:47 timo Exp $ */
 
 #include "bbe.h"
 #include <stdlib.h>
-#include <error.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <string.h>
@@ -34,6 +33,7 @@ struct io_file out_stream;
 
 /* list of input files, points to current file */
 struct io_file *in_stream = NULL;
+struct io_file *in_stream_start = NULL;
 
 /* input buffer */
 struct input_buffer in_buffer;
@@ -80,6 +80,7 @@ set_input_file(char *file)
     if(in_stream ==  NULL)
     {
         in_stream = new;
+        in_stream_start = in_stream;
     } else
     {
         curr = in_stream;
@@ -90,7 +91,8 @@ set_input_file(char *file)
         curr->next = new;
     }
 
-    if(file == NULL)
+    new->start_offset = (off_t) 0;
+    if(file[0] == '-' && file[1] == 0)
     {
         new->fd = STDIN_FILENO;
         new->file = "stdin";
@@ -102,6 +104,28 @@ set_input_file(char *file)
         if (new->file ==  NULL) panic("Out of menory",NULL,NULL);
     }
 }
+
+/* return the name of current input file */
+char *
+get_current_file(void)
+{
+    struct io_file *f = in_stream_start;
+    struct io_file *prev;
+    off_t current_offset = in_buffer.stream_offset + (off_t) (in_buffer.read_pos-in_buffer.buffer);
+
+    while(f != NULL)
+    {
+        prev = f;
+        f = f->next;
+        if(f != NULL && (f->start_offset == (off_t) 0 || f->start_offset > current_offset)) 
+        {
+            f = NULL;
+        }
+    }
+    return prev->file;
+}
+
+
 
 /* initialize in and out buffers */
 void
@@ -129,6 +153,7 @@ read_input_stream()
     if(in_buffer.read_pos == NULL)        // first read, so just fill buffer
     {
         to_be_read = INPUT_BUFFER_SIZE;
+        to_be_saved = 0;
         buffer_write_pos = in_buffer.buffer;
         in_buffer.stream_offset = (off_t) 0;
     } else                                            //we have allready read something
@@ -153,6 +178,8 @@ read_input_stream()
          { 
              if (close(in_stream->fd) == -1) panic("Error in closing file",in_stream->file,strerror(errno));
              in_stream = in_stream->next;
+             if (in_stream != NULL) 
+                 in_stream->start_offset = in_buffer.stream_offset + (off_t) read_count + (off_t) to_be_saved;
          }
          read_count += last_read;
     } while (in_stream != NULL && read_count < to_be_read);
@@ -395,14 +422,27 @@ find_block()
                     found = 1;
                 }
             }
-            if(in_buffer.read_pos > scan_start) 
+            if(in_buffer.read_pos > scan_start && !output_only_block) 
                 write_output_stream(scan_start,in_buffer.read_pos - scan_start);
             if(found) mark_block_end();
         }
     } while (!found && !end_of_stream());
-    if(end_of_stream() && !found) write_output_stream(in_buffer.read_pos,1);
+    if(end_of_stream() && !found && !output_only_block) write_output_stream(in_buffer.read_pos,1);
     if(found) in_buffer.block_num++;
     return found;
+}
+
+/* write null terminated string */
+void
+write_string(char *string)
+{
+    register char *f;
+
+    f = string;
+
+    while(*f != 0) f++;
+
+    write_buffer(string,(off_t) (f - string));
 }
 
 /* write_buffer at the current write position */

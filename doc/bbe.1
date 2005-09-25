@@ -49,6 +49,9 @@ Add the contest of script\-file to commands.
 .BR  \-o ", " \-\-output=\fIname\fP
 Write output to \fIname\fP instead of standard output.
 .TP 
+.BR  \-s ", " \-\-suppress
+Suppress normal output, print only block contents.
+.TP 
 .BR  \-? ", " \-\-help
 List all available options and their meanings.
 .TP 
@@ -68,7 +71,7 @@ Block length in input stream is M.
 String \fIstart\fP starts M bytes long block.
 .TP 
 /start/:/stop/
-String \fIstart\fP starts the block and block ends to string \fIstop\fR
+String \fIstart\fP starts the block and block ends to string \fIstop\fR.
 .TP 
 /start/:
 String \fIstart\fR starts the block and block will end at next occurence of \fIstart\fR. Only the first \fIstart\fR is included to the block.
@@ -113,6 +116,17 @@ Skip \fIn\fR blocks before executing commands after this command.
 .TP 
 L \fIn\fR
 Leave all blocks unmodified starting from block number \fIn\fR. Affects only commands after this command.
+.TP 
+N
+Before printing a block, the file name in which the block starts is printed.
+.TP 
+F \fIf\fR
+Before printing a block, the input stream offset at the begining of the block is printed.
+\fIf\fR can be H, D or O for Hexadecimal, Decimal or Octal format of offset.
+.TP 
+B \fIf\fR
+Before printing a block, the block number is printed (first block == 1)
+\fIf\fR can be H, D or O for Hexadecimal, Decimal or Octal format of block number.
 .LP 
 \fBByte commands\fR
 .br 
@@ -123,6 +137,10 @@ Replace bytes starting at position \fIn\fR with string \fIstring\fR.
 .TP 
 i \fIn\fR \fIstring\fR
 Insert \fIstring\fR starting at position \fIn\fR.
+.TP 
+p \fIformat\fR
+The contents of block is printed in format defined by \fIformat\fR. \fIformat\fR
+can have any of the formats H, D, O and A for Hexadecimal, Decimal, Octal or Ascii.
 .TP 
 s/\fIsearch\fR/\fIreplace\fR/
 Replace all occurrences of \fIsearch\fR with \fIreplace\fR.
@@ -153,7 +171,7 @@ Write bytes from the current block to file \fIfile\fR. Commands before w\-comman
 .LP 
 Nonvisible characters in strings can be escaped same way as in block definition strings. Character '/' in s and y commands can be any visible character.
 .LP 
-Note that the D, A, I, c, s, i, y and d commands cause the length of input and output streams to be different.
+Note that the D, A, I, F, B, c, s, i, y, p and d commands cause the length of input and output streams to be different.
 
 .SH "EXAMPLES"
 .TP 

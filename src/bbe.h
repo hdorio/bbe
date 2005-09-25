@@ -20,7 +20,7 @@
  *
  */
 
-/* $Id: bbe.h,v 1.15 2005/09/14 15:48:52 timo Exp $ */
+/* $Id: bbe.h,v 1.20 2005/09/25 10:03:47 timo Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -32,6 +32,10 @@
 
 #ifdef HAVE_ERRNO_H
 #include <errno.h>
+#endif
+
+#ifdef HAVE_ERROR_H
+#include <error.h>
 #endif
 
 #ifdef HAVE_SYS_TYPES_H
@@ -113,6 +117,7 @@ struct command {
 struct io_file {
     char *file;
     int fd;
+    off_t start_offset;
     struct io_file *next;
 };
 
@@ -203,9 +208,17 @@ execute_program(struct command *c);
 
 extern void
 reverse_bytes(size_t count);
+
+extern void
+write_string(char *string);
+
+extern char *
+get_current_file(void);
+
 /* global variables */
 extern struct block block;
 extern struct command *commands;
 extern struct io_file out_stream;
 extern struct input_buffer in_buffer;
 extern struct output_buffer out_buffer;
+extern int output_only_block;

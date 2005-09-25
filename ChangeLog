@@ -1,4 +1,11 @@
-2005-09-15  Timo Savinen  <tjsa@iki.fi>
+2005-09-25  Timo Savinen <tjsa.iki.fi>
+    * Version 0.1.1
+    * Bug fixes (\\ escape in strings)
+    * -s option added
+    * Added F, B, N and p commands
+    * Several commands can be given in one -e switch, commands must be separated by semicolon
 
-	* bbe: initial version 0.1.0.
+2005-09-15  Timo Savinen <tjsa@iki.fi>
+
+    * bbe: initial version 0.1.0.
 

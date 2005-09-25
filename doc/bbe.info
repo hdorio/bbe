@@ -59,6 +59,9 @@ basic byte related transformations on blocks of input stream. `bbe' is
 non-interactive command line tool and can be used as a part of a
 pipeline. `bbe' makes only one pass over input stream.
 
+   `bbe' also contains grep-like features, like printing the filename,
+offset and block number.
+
 
 File: bbe.info,  Node: Samples,  Next: Invoking bbe,  Prev: Overview,  Up: Top
 
@@ -124,7 +127,8 @@ The format for running the `bbe' program is:
 
 `-e COMMAND'
 `--expression=COMMAND'
-     Add command to the commands to be executed.
+     Add command(s) to the commands to be executed. Commands must
+     separated by semicolon.
 
 `-f SCRIPT-FILE'
 `--file=SCRIPT-FILE'
@@ -133,6 +137,10 @@ The format for running the `bbe' program is:
 `-o FILE'
 `--output=FILE'
      Write output to FILE instead of standard output.
+
+`-s'
+`--suppress'
+     Suppress printing of normal output, print only block contents.
 
 `-?'
 `--help'
@@ -144,7 +152,8 @@ The format for running the `bbe' program is:
      Print the version number of `bbe' and then exit successfully.
 
    All remaining options are names of input files, if no input files
-are specified, then the standard input is read.
+are specified, then the standard input is read.  `-' means standard
+input.
 
 
 File: bbe.info,  Node: Block,  Next: Commands,  Prev: Invocation,  Up: Invoking bbe
@@ -247,6 +256,28 @@ Block commands are:
      Commands that are defined before this command have effect on every
      block.
 
+`N'
+     Before block contents the file name where the block starts is
+     printed with colon.
+
+`F F'
+     Before block contents the current stream offset and colon is
+     printed in format specified by F.  Stream offset starts at zero. F
+     can have one of following values:
+    H
+          Hexadecimal.
+
+    D
+          Decimal.
+
+    O
+          Octal.
+
+`B F'
+     Before block contents the current block number and colon is
+     printed in format specified by F.  Block numbering starts at zero.
+     F can have one of the sames codes as `F'-command
+
 Byte commands are:
 ------------------
 
@@ -260,7 +291,7 @@ block, first byte is number zero.
 
     `BCD'
           Binary Coded Decimal
-     *Note:* Bytes, that cannot be converted are passed through as they
+     *Note*: Bytes, that cannot be converted are passed through as they
      are. e.g. in ASC -> BCD conversion, ASCII characters not in range
      `'0'' - `'9'' are not converted.
 
@@ -277,6 +308,24 @@ block, first byte is number zero.
 `l N'
      Commands appearing after `l'-command have no effect concerning
      bytes starting from the byte number N of the block.
+
+`p FORMAT'
+     Contents of block is printed in formats specified by FORMAT.
+     FORMAT can contain following format codes:
+    H
+          Hexadecimal.
+
+    D
+          Decimal.
+
+    O
+          Octal.
+
+    A
+          Ascii, nonprintable characters are printed as space.
+
+     FORMAT can contain several codes, values are then separated by
+     hyphen.
 
 `r N STRING'
      Replace bytes with STRING starting at the byte number N of the
@@ -303,8 +352,8 @@ File: bbe.info,  Node: Limits,  Prev: Commands,  Up: Invoking bbe
 3.4 Limitations
 ===============
 
-At least in GNU/Linux `bbe' should be able to handle big files (>4GB),
-other systems are  not tested.
+At least in GNU/Linux `bbe' should be able to handle big files (> 4
+GB), other systems are  not tested.
 
    There are however, some limitations in block and command definitions:
 
@@ -332,10 +381,11 @@ Basic execution cycle:
 ----------------------
 
   1. Start of the block is searched. If found, data before block is
-     written to output stream and step 2 is executed.
+     written to output stream (unless `-s' is defined) and step 2 is
+     executed.
 
-  2. Block commands affecting the start of the block (`A', `D' and `J')
-     are executed.
+  2. Block commands affecting the start of the block (`A', `D', `J',
+     `N', `F' and `B') are executed.
 
   3. The block is scanned byte by byte and all byte commands (lower
      case letters) are executed.  *Note*: Commands are executed on
@@ -345,8 +395,8 @@ Basic execution cycle:
   4. When end of the block is reached the end of the block commands
      (`I') are executed.
 
-  5. Next block is searched, data between the blocks is written to
-     output stream.
+  5. Next block is searched, data between the blocks, if not suppressed
+     with `-s', is written to output stream.
 
 Few examples:
 -------------
@@ -358,7 +408,6 @@ Few examples:
           The quick brown fox j
      All spaces in the block are converted to X's, before conversion
      first 4 bytes are skipped.
-
 `echo "The quick brown fox jumps over a lazy dog" | bbe -b ":/ /" -e "J 1" -e "I \x0a"'
      Output is:
           The quick
@@ -371,17 +420,42 @@ Few examples:
           dog
      All blocks end at space, a newline character is inserted after
      every block except the first block.
-
 `echo "The quick brown fox jumps over a lazy dog" | bbe  -e "r 4 fast\x20" -e "s/f/c/"'
      Output is:
           The cast  brown cox jumps over a lazy dog
      Also the `f' in `fast' is converted to `c'.
-
 `echo "1234567890" | bbe -b ":1"  -e "L 9" -e "I -"'
      Output is
           1-2-3-4-5-6-7-8-9-0
      Minus is inserted after every 1 byte long block,but not after 9'th
      block.
+`bbe -s -b "/First line/:/Last line/" /tmp/text'
+     Print lines between sentences `First line' and `Last line'.
+`bbe -s -b "%<a %:%</a>%" -e "s/\x0a/ /" -e "I \x0a" ./index.html'
+     Extract all links from `./index.html'. To get one link per line,
+     all newlines are converted to spaces and newline is added after
+     every link.
+`bbe -b "/\x5f\x28\x02/:10" -s  -e "F d"  -e "p h" -e "I \x0a" ./bindata'
+     10 bytes long sequences starting with values `x5f' `x28' and `x02'
+     are printed as hex values.  Also the file offset is printed before
+     each sequence and new line is added after every sequence.  Example
+     output:
+          52688:x5f x28 x02 x32 x36 x5f x81 x64 x01 x93
+          68898:x5f x28 x02 x39 x46 x5f x81 x64 x41 x05
+          69194:x5f x28 x02 x42 x36 x5f x81 x64 x41 x05
+
+`bbe -b "/Linux/:5" -s -e "N;D;I \x0a" /bin/* | uniq'
+     Print the files names of those programs in /bin directory which
+     contains word `Linux'.  Example output:
+          /bin/loadkeys:
+          /bin/mkbimage:
+          /bin/ps:
+          /bin/uname:
+
+`bbe -b "/\x5f\x81\x18\x06/:10" -s -e "B d;d 0 4;c BCD ASC;I \x0a" ./bindata'
+     Print BCD numbers and their block numbers in ascii format. Numbers
+     start with sequence `x5f' `x81' `x18' `x06'.  The start sequence
+     is not printed.
 
 
 File: bbe.info,  Node: Problems,  Prev: bbe programs,  Up: Top
@@ -404,13 +478,13 @@ problems.
 Tag Table:
 Node: Top766
 Node: Overview1811
-Node: Samples2201
-Node: Invoking bbe3599
-Node: Invocation4117
-Node: Block4980
-Node: Commands6784
-Node: Limits9572
-Node: bbe programs10123
-Node: Problems12406
+Node: Samples2298
+Node: Invoking bbe3696
+Node: Invocation4214
+Node: Block5237
+Node: Commands7041
+Node: Limits10744
+Node: bbe programs11297
+Node: Problems14962
 
 End Tag Table

@@ -6,7 +6,7 @@
 @finalout
 @c %**end of header
 
-@set VERSION 0.1.0
+@set VERSION 0.1.1
 
 @copying
 This file documents the @command{bbe} - binary block editor
@@ -67,6 +67,9 @@ into another language, under the above conditions for modified versions.
 The @command{bbe} program is a sed-like editor for binary files. @command{bbe} 
 performs basic byte related transformations on blocks of input stream. @command{bbe} is non-interactive command line tool and
 can be used as a part of a pipeline. @command{bbe} makes only one pass over input stream. 
+
+@command{bbe} also contains grep-like features, like printing the filename, offset and block number.
+
 
 @node Samples, Invoking bbe, Overview, Top
 @chapter Samples using @command{bbe}
@@ -136,7 +139,7 @@ Block definition.
 
 @item -e @var{COMMAND}
 @itemx --expression=@var{COMMAND}
-Add command to the commands to be executed.
+Add command(s) to the commands to be executed. Commands must separated by semicolon.
 
 
 @item -f @var{script-file}
@@ -147,6 +150,11 @@ Add commands from @var{script-file} to the commands to be executed.
 @item -o @var{file}
 @itemx --output=@var{file}
 Write output to @var{file} instead of standard output.
+
+
+@item -s
+@itemx --suppress
+Suppress printing of normal output, print only block contents.
 
 
 @item -?
@@ -161,6 +169,7 @@ Print the version number of @command{bbe} and then exit successfully.
 @end table
 
 All remaining options are names of input files, if no input files are specified, then the standard input is read.
+@code{-} means standard input.
 
 @node Block, Commands, Invocation, Invoking bbe
 @section Block definition
@@ -251,6 +260,27 @@ Commands appearing after this command have no effect until @var{N} blocks are fo
 @item L @var{N}
 Commands appearing after this command have no effect after @var{N} blocks are found. Means "Leave blocks after @var{N}'th block".
 @strong{Note}: Commands that are defined before this command have effect on every block.
+
+@item N
+Before block contents the file name where the block starts is printed with colon.
+
+@item F @var{f}
+Before block contents the current stream offset and colon is printed in format specified by @var{f}. 
+Stream offset starts at zero. @var{f} can have one of following values:
+@table @var
+@item H
+Hexadecimal.
+
+@item D
+Decimal.
+
+@item O
+Octal.
+@end table
+
+@item B @var{f}
+Before block contents the current block number and colon is printed in format specified by @var{f}. 
+Block numbering starts at zero. @var{f} can have one of the sames codes as @code{F}-command
 @end table
 
 @subheading Byte commands are:
@@ -267,7 +297,7 @@ Ascii
 @item BCD
 Binary Coded Decimal
 @end table
-@strong{Note:} Bytes, that cannot be converted are passed through as they are. e.g. in ASC -> BCD conversion, ASCII characters not 
+@strong{Note}: Bytes, that cannot be converted are passed through as they are. e.g. in ASC -> BCD conversion, ASCII characters not 
 in range @code{'0'} -- @code{'9'} are not converted.
 
 @item d @var{n} @var{m} 
@@ -281,6 +311,24 @@ Commands appearing after @code{j}-command have no effect concerning bytes 0-@var
 
 @item l @var{n}
 Commands appearing after @code{l}-command have no effect concerning bytes starting from the byte number @var{n} of the block.
+
+@item p @var{format}
+Contents of block is printed in formats specified by @var{format}. @var{format} can contain following format codes:
+@table @var
+@item H
+Hexadecimal.
+
+@item D
+Decimal.
+
+@item O
+Octal.
+
+@item A
+Ascii, nonprintable characters are printed as space.
+@end table
+
+@var{format} can contain several codes, values are then separated by hyphen.
 
 @item r @var{n} @var{string}
 Replace bytes with @var{string} starting at the byte number @var{n} of the block.
@@ -303,7 +351,7 @@ Separator @code{/} can be replaced by any character not present in @var{source} 
 @cindex big files
 @cindex limits
 
-At least in GNU/Linux @command{bbe} should be able to handle big files (>4GB), other
+At least in GNU/Linux @command{bbe} should be able to handle big files (> 4 GB), other
 systems are  not tested.
 
 There are however, some limitations in block and command definitions:
@@ -331,22 +379,22 @@ and if the end of input stream is found before 128'th byte of the last block is 
 
 @enumerate
 @item
-Start of the block is searched. If found, data before block is written to output stream and
+Start of the block is searched. If found, data before block is written to output stream (unless @option{-s} is defined) and
 step 2 is executed.
 
 @item
-Block commands affecting the start of the block (@code{A}, @code{D} and @code{J}) are executed.
+Block commands affecting the start of the block (@code{A}, @code{D}, @code{J}, @code{N}, @code{F} and @code{B}) are executed.
 
 @item
 The block is scanned byte by byte and all byte commands (lower case letters) are executed. 
 @strong{Note}: Commands are executed on results of previous commands, if e.g. the first byte of the block is deleted, 
-the following  commands don't 'see' the removed byte. 
+the following  commands don't 'see' the removed byte.
 
 @item
 When end of the block is reached the end of the block commands (@code{I}) are executed.
 
 @item 
-Next block is searched, data between the blocks is written to output stream.
+Next block is searched, data between the blocks, if not suppressed with @option{-s}, is written to output stream.
 @end enumerate
 
 @subheading Few examples:
@@ -361,7 +409,7 @@ The only block in this is
 @example
 The quick brown fox j
 @end example
-All spaces in the block are converted to X's, before conversion first 4 bytes are skipped.
+All spaces in the block are converted to X's, before conversion first 4 bytes are skipped.@*
 
 @item echo "The quick brown fox jumps over a lazy dog" | bbe -b ":/ /" -e "J 1" -e "I \x0a"
 Output is:
@@ -376,21 +424,54 @@ lazy
 dog
 
 @end example
-All blocks end at space, a newline character is inserted after every block except the first block.
+All blocks end at space, a newline character is inserted after every block except the first block.@*
 
 @item echo "The quick brown fox jumps over a lazy dog" | bbe  -e "r 4 fast\x20" -e "s/f/c/"
 Output is:
 @example
 The cast  brown cox jumps over a lazy dog
 @end example
-Also the @code{f} in @code{fast} is converted to @code{c}.
+Also the @code{f} in @code{fast} is converted to @code{c}.@*
 
 @item echo "1234567890" | bbe -b ":1"  -e "L 9" -e "I -"
 Output is
 @example 
 1-2-3-4-5-6-7-8-9-0
 @end example
-Minus is inserted after every 1 byte long block,but not after 9'th block.
+Minus is inserted after every 1 byte long block,but not after 9'th block.@*
+
+@item bbe -s -b "/First line/:/Last line/" /tmp/text
+Print lines between sentences @samp{First line} and @samp{Last line}.@*
+
+@item bbe -s -b "%<a %:%</a>%" -e "s/\x0a/ /" -e "I \x0a" ./index.html
+Extract all links from @file{./index.html}. To get one link per line, 
+all newlines are converted to spaces and newline is added after every link.@*
+
+@item bbe -b "/\x5f\x28\x02/:10" -s  -e "F d"  -e "p h" -e "I \x0a" ./bindata
+10 bytes long sequences starting with values @code{x5f} @code{x28} and @code{x02} are printed as hex values. 
+Also the file offset is printed before each sequence and new line is added after every sequence.
+Example output:
+@example
+52688:x5f x28 x02 x32 x36 x5f x81 x64 x01 x93
+68898:x5f x28 x02 x39 x46 x5f x81 x64 x41 x05
+69194:x5f x28 x02 x42 x36 x5f x81 x64 x41 x05
+@end example
+@*
+
+@item bbe -b "/Linux/:5" -s -e "N;D;I \x0a" /bin/* | uniq
+Print the files names of those programs in /bin directory which contains word @samp{Linux}.
+Example output:
+@example
+/bin/loadkeys:
+/bin/mkbimage:
+/bin/ps:
+/bin/uname:
+@end example
+@*
+
+@item bbe -b "/\x5f\x81\x18\x06/:10" -s -e "B d;d 0 4;c BCD ASC;I \x0a" ./bindata
+Print BCD numbers and their block numbers in ascii format. Numbers start with sequence @code{x5f} @code{x81} @code{x18} @code{x06}.
+The start sequence is not printed.
 @end table
 
 
