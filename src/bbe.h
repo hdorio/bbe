@@ -20,7 +20,7 @@
  *
  */
 
-/* $Id: bbe.h,v 1.20 2005/09/25 10:03:47 timo Exp $ */
+/* $Id: bbe.h,v 1.24 2005/09/29 11:27:01 timo Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -214,6 +214,12 @@ write_string(char *string);
 
 extern char *
 get_current_file(void);
+
+extern inline unsigned char *
+read_pos();
+
+extern inline unsigned char *
+block_end_pos();
 
 /* global variables */
 extern struct block block;

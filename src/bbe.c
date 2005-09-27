@@ -20,7 +20,7 @@
  *
  */
 
-/* $Id: bbe.c,v 1.30 2005/09/25 10:03:47 timo Exp $ */
+/* $Id: bbe.c,v 1.33 2005/09/30 10:58:15 timo Exp $ */
 
 #include "bbe.h"
 #ifdef HAVE_GETOPT_H
@@ -43,7 +43,7 @@ static char *program = "bbe";
 #ifdef VERSION
 static char *version = VERSION;
 #else
-static char *version = "0.1.1";
+static char *version = "0.1.2";
 #endif
 
 #ifdef PACKAGE_BUGREPORT
@@ -176,9 +176,35 @@ parse_string(char *string,off_t *length)
         if(*p == '\\')
         {
             p++;
-            if(*p == '\\' || *p == ';')
+            if(strchr("\\;abtnvfr",*p) != NULL)
             {
-                buf[i] = *p++;
+                switch(*p)
+                {
+                    case 'a':
+                        buf[i] = '\a';
+                        break;
+                    case 'b':
+                        buf[i] = '\b';
+                        break;
+                    case 't':
+                        buf[i] = '\t';
+                        break;
+                    case 'n':
+                        buf[i] = '\n';
+                        break;
+                    case 'v':
+                        buf[i] = '\v';
+                        break;
+                    case 'f':
+                        buf[i] = '\f';
+                        break;
+                    case 'r':
+                        buf[i] = '\r';
+                        break;
+                    default:
+                        buf[i] = *p;
+                }
+                p++;
             } else
             {
                 j = 0;
@@ -507,6 +533,16 @@ parse_command(char *command_string)
             if (*f == 0) panic("Error in command",command_string,NULL);
             break;
         case 'N':
+            if(i != 1 || strlen(token[0]) > 1) panic("Error in command",command_string,NULL);
+            break;
+        case '&':
+        case '|':
+        case '^':
+            if(i != 2 || strlen(token[0]) > 1) panic("Error in command",command_string,NULL);
+            new->s1 = parse_string(token[1],&new->s1_len);
+            if(new->s1_len != 1)  panic("Error in command",command_string,NULL);
+            break;
+        case '~':
             if(i != 1 || strlen(token[0]) > 1) panic("Error in command",command_string,NULL);
             break;
         default:

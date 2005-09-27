@@ -20,7 +20,7 @@
  *
  */
 
-/* $Id: buffer.c,v 1.25 2005/09/25 10:03:47 timo Exp $ */
+/* $Id: buffer.c,v 1.30 2005/09/30 10:58:15 timo Exp $ */
 
 #include "bbe.h"
 #include <stdlib.h>
@@ -113,6 +113,8 @@ get_current_file(void)
     struct io_file *prev;
     off_t current_offset = in_buffer.stream_offset + (off_t) (in_buffer.read_pos-in_buffer.buffer);
 
+    if(f == NULL) return "";
+
     while(f != NULL)
     {
         prev = f;
@@ -194,6 +196,20 @@ inline unsigned char
 read_byte()
 {
     return *in_buffer.read_pos;
+}
+
+/* returns pointer to the read position */
+inline unsigned char *
+read_pos()
+{
+    return in_buffer.read_pos;
+}
+
+/* return the block end pointer */
+inline unsigned char *
+block_end_pos()
+{
+    return in_buffer.block_end;
 }
 
 /* advances the read pointer, if buffer has reached low water, get more from stream to buffer */
@@ -450,6 +466,8 @@ void
 write_buffer(unsigned char *buf,off_t length)
 {
     unsigned char *save_pos;
+
+    if(!length) return;
 
     if(length > (off_t) (OUTPUT_BUFFER_SIZE - (out_buffer.write_pos - out_buffer.buffer)))
     {

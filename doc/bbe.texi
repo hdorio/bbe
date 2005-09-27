@@ -6,7 +6,7 @@
 @finalout
 @c %**end of header
 
-@set VERSION 0.1.1
+@set VERSION 0.1.2
 
 @copying
 This file documents the @command{bbe} - binary block editor
@@ -78,13 +78,13 @@ can be used as a part of a pipeline. @command{bbe} makes only one pass over inpu
 Few examples of running @command{bbe}:
 
 @table @samp
-@item bbe -b "/\x80\x50\x0e/:12" -e "d 0 3" -e "c BCD ASC" -e "I \x0a" -e "w /tmp/numbers" -o /dev/null /tmp/bdata
+@item bbe -b "/\x80\x50\x0e/:12" -e "d 0 3" -e "c BCD ASC" -e "A \x0a" -e "w /tmp/numbers" -o /dev/null /tmp/bdata
 Task here is to extract BCD coded numbers from the file @file{/tmp/bdata} and write them
 in ascii format with newline to file @file{/tmp/numbers}. 
 12 bytes long blocks containing the BCD-numbers start with three byte sequence of 
 values @samp{0x80}, @samp{0x50} and @samp{0x0e}. First three bytes (the block start sequence)
 are removed (@samp{d 0 3}) rest of the block is transformed from BCD to Ascii (@samp{c BCD ASC}) and a newline character is
-inserted at the end of the block (@samp{I \x0a}).
+appended at the end of the block (@samp{A \x0a}).
 All transformed blocks are written to @file{/tmp/numbers} (@samp{w /tmp/numbers}). Nothing is written to
 the output (@samp{-o /dev/null}).
 @*
@@ -108,7 +108,7 @@ Same effect as has command @command{dos2unix}.
 
 @command{bbe} accepts several commands to operate on blocks. Commands are
 executed in the same order as they appear in command line or in a script file.
-Order is significant, because the changes made by previous commands are
+Order is significant, because the changes made to current byte by previous commands are
 seen by next commands.
 
 @menu
@@ -217,6 +217,35 @@ Octal values
 Hexadecimal values
 @end table
 
+Also escape code @code{\y} can be used. Decimal values of @code{\y}'s: 
+
+@table @code
+@item \a
+7
+
+@item \b
+8
+
+@item \t
+9
+
+@item \n
+10
+
+@item \v
+11
+
+@item \f
+12
+
+@item \r
+13
+
+@item \;
+59@*Semicolon must be escaped, because it is command delimitter.
+@end table
+
+
 Values of @var{N} and @var{M} can be given in decimal, octal and hexadecimal:
 
 @table @code
@@ -243,14 +272,14 @@ Same escape codes for byte values in @var{string}s can be used as in @var{start}
 @subheading Block commands are:
 
 @table @code
-@item A @var{string}
+@item I @var{string}
 Write the @var{string} to output stream before the block.
 
 @item D [@var{N}]
 Delete the @var{N}'th block. If @var{N} is not defined all blocks are deleted from output stream. 
 @strong{Note}: First block is number one.
 
-@item I @var{string}
+@item A @var{string}
 Write the @var{string} to output stream after the block.
 
 @item J @var{N}
@@ -344,6 +373,18 @@ are not written to file @file{file} and @code{J} and @code{L} commands have no e
 @item y/@var{source}/@var{dest}/
 Translate bytes in @var{source} to the corresponding bytes in @var{dest}. @var{source} and @var{dest} must have equal length.
 Separator @code{/} can be replaced by any character not present in @var{source} or @var{dest}.
+
+@item & c
+Performs binary and with @var{c} on block contents.
+
+@item | c
+Performs binary or with @var{c} on block contents.
+
+@item ^ c
+Performs exclusive or with @var{c} on block contents.
+
+@item ~
+Performs binary negation on block contents.
 @end table
 
 @node Limits, , Commands, Invoking bbe
@@ -383,7 +424,7 @@ Start of the block is searched. If found, data before block is written to output
 step 2 is executed.
 
 @item
-Block commands affecting the start of the block (@code{A}, @code{D}, @code{J}, @code{N}, @code{F} and @code{B}) are executed.
+Block commands affecting the start of the block (@code{I}, @code{D}, @code{J}, @code{N}, @code{F} and @code{B}) are executed.
 
 @item
 The block is scanned byte by byte and all byte commands (lower case letters) are executed. 
@@ -391,7 +432,7 @@ The block is scanned byte by byte and all byte commands (lower case letters) are
 the following  commands don't 'see' the removed byte.
 
 @item
-When end of the block is reached the end of the block commands (@code{I}) are executed.
+When end of the block is reached the end of the block commands (@code{A}) are executed.
 
 @item 
 Next block is searched, data between the blocks, if not suppressed with @option{-s}, is written to output stream.
@@ -411,7 +452,7 @@ The quick brown fox j
 @end example
 All spaces in the block are converted to X's, before conversion first 4 bytes are skipped.@*
 
-@item echo "The quick brown fox jumps over a lazy dog" | bbe -b ":/ /" -e "J 1" -e "I \x0a"
+@item echo "The quick brown fox jumps over a lazy dog" | bbe -b ":/ /" -e "J 1" -e "A \x0a"
 Output is:
 @example
 The quick
@@ -433,7 +474,7 @@ The cast  brown cox jumps over a lazy dog
 @end example
 Also the @code{f} in @code{fast} is converted to @code{c}.@*
 
-@item echo "1234567890" | bbe -b ":1"  -e "L 9" -e "I -"
+@item echo "1234567890" | bbe -b ":1"  -e "L 9" -e "A -"
 Output is
 @example 
 1-2-3-4-5-6-7-8-9-0
@@ -443,11 +484,11 @@ Minus is inserted after every 1 byte long block,but not after 9'th block.@*
 @item bbe -s -b "/First line/:/Last line/" /tmp/text
 Print lines between sentences @samp{First line} and @samp{Last line}.@*
 
-@item bbe -s -b "%<a %:%</a>%" -e "s/\x0a/ /" -e "I \x0a" ./index.html
+@item bbe -s -b "%<a %:%</a>%" -e "s/\x0a/ /" -e "A \n" ./index.html
 Extract all links from @file{./index.html}. To get one link per line, 
 all newlines are converted to spaces and newline is added after every link.@*
 
-@item bbe -b "/\x5f\x28\x02/:10" -s  -e "F d"  -e "p h" -e "I \x0a" ./bindata
+@item bbe -b "/\x5f\x28\x02/:10" -s  -e "F d"  -e "p h" -e "A \n" ./bindata
 10 bytes long sequences starting with values @code{x5f} @code{x28} and @code{x02} are printed as hex values. 
 Also the file offset is printed before each sequence and new line is added after every sequence.
 Example output:
@@ -458,7 +499,7 @@ Example output:
 @end example
 @*
 
-@item bbe -b "/Linux/:5" -s -e "N;D;I \x0a" /bin/* | uniq
+@item bbe -b "/Linux/:5" -s -e "N;D;A \x0a" /bin/* | uniq
 Print the files names of those programs in /bin directory which contains word @samp{Linux}.
 Example output:
 @example
@@ -469,9 +510,12 @@ Example output:
 @end example
 @*
 
-@item bbe -b "/\x5f\x81\x18\x06/:10" -s -e "B d;d 0 4;c BCD ASC;I \x0a" ./bindata
+@item bbe -b "/\x5f\x81\x18\x06/:10" -s -e "B d;d 0 4;c BCD ASC;A \n" ./bindata
 Print BCD numbers and their block numbers in ascii format. Numbers start with sequence @code{x5f} @code{x81} @code{x18} @code{x06}.
-The start sequence is not printed.
+The start sequence is not printed.@*
+
+@item bbe -b "/\x5f/:2" -e "j 1;& \xf0" -o newdata bindata
+The least significant nybble of bytes after @code{x5f} is cleared.
 @end table
 
 

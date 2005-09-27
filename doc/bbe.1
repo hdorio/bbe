@@ -94,7 +94,7 @@ hexadecimal
 \\0nnn
 octal
 .LP 
-Character '\\' can be escaped as '\\\\'.
+Character '\\' can be escaped as '\\\\'. Escape codes '\\a','\\b','\\t','\\n','\\v','\\f','\\r' and '\\;' can also be used.
 .LP 
 Length (N and M) can be defined as decimal (n), hexadecimal (xn) or octal (0n) value.
 .SH "COMMAND SYNOPSIS"
@@ -105,11 +105,11 @@ bbe has two type of commands: block and byte commands, both are allways related 
 D [\fIn\fR]
 Delete the \fIn\fR'th block. Without \fIn\fR, all found blocks are deleted from the output stream.
 .TP 
-A \fIstring\fR
-Append the string \fIstring\fR before the block.
-.TP 
 I \fIstring\fR
-Insert the string \fIstring\fR at the end of block.
+Insert the string \fIstring\fR before the block.
+.TP 
+A \fIstring\fR
+Append the string \fIstring\fR at the end of block.
 .TP 
 J \fIn\fR
 Skip \fIn\fR blocks before executing commands after this command.
@@ -168,6 +168,18 @@ Commands after the l\-command are ignored from \fIn\fR'th byte of the block.
 .TP 
 w \fIfile\fR
 Write bytes from the current block to file \fIfile\fR. Commands before w\-command have effect to what will be written.
+.TP 
+& \fIbyte\fR
+Performs binary and with \fIbyte\fR.
+.TP 
+| \fIbyte\fR
+Performs binary or with \fIbyte\fR.
+.TP 
+^ \fIbyte\fR
+Performs binary xor with \fIbyte\fR.
+.TP 
+~
+Performs binary negation.
 .LP 
 Nonvisible characters in strings can be escaped same way as in block definition strings. Character '/' in s and y commands can be any visible character.
 .LP 

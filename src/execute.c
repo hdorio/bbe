@@ -1,4 +1,4 @@
-/*
+/* 
  *    bbe - Binary block editor
  *
  *    Copyright (C) 2005 Timo Savinen
@@ -20,7 +20,7 @@
  *
  */
 
-/* $Id: execute.c,v 1.17 2005/09/25 10:03:47 timo Exp $ */
+/* $Id: execute.c,v 1.23 2005/09/30 10:58:15 timo Exp $ */
 
 #include "bbe.h"
 #include <stdlib.h>
@@ -35,18 +35,21 @@ static int delete_this_byte;
 /* tells if current block should be deleted */
 static int delete_this_block;
 
+/* tells if i or s commands are inserting bytes, meaningfull at end of the block */
+static int inserting;
+
 /* command list for write_w_command */
 static struct command *current_commands;
 
 /* commands to be executed at start of buffer */
 /* note J and L must be in every string becaus ethey affect the whole block */
-#define BLOCK_START_COMMANDS "DAJLFBN"
+#define BLOCK_START_COMMANDS "DIJLFBN"
 
 /* commands to be executed for each byte  */
-#define BYTE_COMMANDS "acdirsywjplJL"
+#define BYTE_COMMANDS "acdirsywjplJL&|^~"
 
 /* commands to be executed at end of buffer  */
-#define BLOCK_END_COMMANDS "IJL"
+#define BLOCK_END_COMMANDS "AJL"
 
  
 /* byte_to_string, convert byte value to visible string,
@@ -63,7 +66,7 @@ byte_to_string(unsigned char byte,char format)
             sprintf(string,"x%02x",(int) byte);
             break;
         case 'D':
-            sprintf(string,"% 3d",(int) byte);
+            sprintf(string,"%3d",(int) byte);
             break;
         case 'O':
             sprintf(string,"%03o",(int) byte);
@@ -111,7 +114,7 @@ execute_commands(struct command *c,char *command_letters)
 {
     register int i;
     unsigned char a,b;
-    char *f;
+    unsigned char *p;
     char *str;
 
     while(c != NULL)
@@ -141,51 +144,82 @@ execute_commands(struct command *c,char *command_letters)
                     if(c->offset == in_buffer.block_num || c->offset == 0) delete_this_block = 1;
                     break;
                 case 'i':
-                    if(c->offset == in_buffer.block_offset) 
+                    if(c->offset == in_buffer.block_offset && !c->rpos) 
                     {
-                        if (!delete_this_byte) write_next_byte();
-                        write_buffer(c->s1,c->s1_len);
-                        reverse_bytes(1);
+                        c->rpos = 1;
+                        inserting = 1;
+                        break;
+                    } 
+                    if(c->rpos > 0 && c->rpos <= c->s1_len)
+                    {
+                        if(c->rpos <= c->s1_len)
+                        {
+                            put_byte(c->s1[c->rpos - 1]);
+                            if(c->rpos < c->s1_len) inserting = 1;
+                        }
+                        c->rpos++;
                     }
                     break;
                 case 'r':
-                    if(c->offset == in_buffer.block_offset)
+                    if(in_buffer.block_offset >= c->offset &&
+                       in_buffer.block_offset < c->offset + c->s1_len)
                     {
-                        put_byte(c->s1[0]);
-                        c->rpos=1;
-                        delete_this_byte = 0;
-                    } else if(c->rpos)
-                    {
-                        if(c->rpos < c->s1_len)
-                        {
-                            put_byte(c->s1[c->rpos]);
-                            c->rpos++;
-                            delete_this_byte = 0;
-                        } else
-                        {
-                            c->rpos = 0;
-                        }
+                        put_byte(c->s1[in_buffer.block_offset - c->offset]);
                     }
                     break;
                 case 's':
-                    if(delete_this_byte || out_buffer.block_offset + 1 < c->s1_len) break;
+                    if(c->rpos)
+                    {
+                        if(c->rpos < c->s1_len && c->rpos < c->s2_len)
+                        {
+                            put_byte(c->s2[c->rpos]);
+                        } else if (c->rpos < c->s1_len && c->rpos >= c->s2_len)
+                        {
+                            delete_this_byte = 1;
+                        } else if(c->rpos >= c->s1_len && c->rpos < c->s2_len)
+                        {
+                            put_byte(c->s2[c->rpos]);
+                        } 
+
+                        if(c->rpos >= c->s1_len - 1 && c->rpos < c->s2_len - 1)
+                        {
+                            inserting = 1;
+                        }
+
+                        c->rpos++;
+                        if(c->rpos >= c->s1_len && c->rpos >= c->s2_len)
+                        {
+                            c->rpos = 0;
+                        }
+                        break;
+                    }
+                    if(delete_this_byte) break;
+                    p = out_buffer.write_pos;
                     i = 0;
-                    while(out_buffer.write_pos[i - c->s1_len + 1] == c->s1[i] && i < c->s1_len) i++;
-                    if(i < c->s1_len)  break;
-                    reverse_bytes(c->s1_len - 1);
-                    if(c->s2_len) 
+                    while(*p == c->s1[i] && i < c->s1_len)
                     {
-                        write_buffer(c->s2,c->s2_len);
-                        reverse_bytes(1);
-                    } else
+                        if(p == out_buffer.write_pos) p = read_pos();
+                        if(p == block_end_pos() && c->s1_len - 1 > i) break;
+                        i++;
+                        p++;
+                    }
+                    if(i == c->s1_len) 
                     {
-                        delete_this_byte = 1;
+                        if(c->s1_len > 1 || c->s2_len > 1) c->rpos = 1;
+                        if(c->s2_len) 
+                        {
+                            put_byte(c->s2[0]);
+                            if(c->s1_len == 1 && c->s2_len > 1) inserting = 1;
+                        } else
+                        {
+                            delete_this_byte = 1;
+                        }
                     }
                     break;
                 case 'y':
                     i = 0;
-                    while(c->s1[i] != read_byte() && i < c->s1_len) i++;
-                    if(c->s1[i] == read_byte() && i < c->s1_len) put_byte(c->s2[i]);
+                    while(c->s1[i] != *out_buffer.write_pos && i < c->s1_len) i++;
+                    if(c->s1[i] == *out_buffer.write_pos && i < c->s1_len) put_byte(c->s2[i]);
                     break;
                 case 'c':
                     switch(c->s1[0])
@@ -276,13 +310,14 @@ execute_commands(struct command *c,char *command_letters)
                     break;
                 case 'p':
                     if (delete_this_byte) break;
-                    f = c->s1;
-                    while(*f != 0)
+                    i = 0;
+                    a = *out_buffer.write_pos;
+                    while(i < c->s1_len)
                     {
-                        str = byte_to_string(read_byte(),*f);
+                        str = byte_to_string(a,c->s1[i]);
                         write_string(str);
-                        f++;
-                        if (*f != 0) 
+                        i++;
+                        if (i < c->s1_len) 
                         {
                             put_byte('-');
                             write_next_byte();
@@ -306,6 +341,18 @@ execute_commands(struct command *c,char *command_letters)
                     write_string(get_current_file());
                     put_byte(':');
                     write_next_byte();
+                    break;
+                case '&':
+                    put_byte(*out_buffer.write_pos & c->s1[0]);
+                    break;
+                case '|':
+                    put_byte(*out_buffer.write_pos | c->s1[0]);
+                    break;
+                case '^':
+                    put_byte(*out_buffer.write_pos ^ c->s1[0]);
+                    break;
+                case '~':
+                    put_byte(~*out_buffer.write_pos);
                     break;
                 case 'w':
                     break;
@@ -400,15 +447,16 @@ execute_program(struct command *c)
         {
             set_cycle_start();
             delete_this_byte = 0;
+            inserting = 0;
             block_end = last_byte();
-            put_byte(read_byte());          // as default write current byte from input
+            put_byte(read_byte());     // as default write current byte from input
             execute_commands(c,BYTE_COMMANDS);
             if(!delete_this_byte && !delete_this_block)
             {
                write_next_byte();           // advance the write pointer if byte is not marked for del
             }
-            if(!block_end) get_next_byte();
-        } while (!block_end);
+            if(!block_end && !inserting) get_next_byte();
+        } while (!block_end || inserting);
         execute_commands(c,BLOCK_END_COMMANDS);
         flush_buffer();
     }

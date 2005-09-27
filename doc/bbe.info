@@ -70,15 +70,15 @@ File: bbe.info,  Node: Samples,  Next: Invoking bbe,  Prev: Overview,  Up: Top
 
 Few examples of running `bbe':
 
-`bbe -b "/\x80\x50\x0e/:12" -e "d 0 3" -e "c BCD ASC" -e "I \x0a" -e "w /tmp/numbers" -o /dev/null /tmp/bdata'
+`bbe -b "/\x80\x50\x0e/:12" -e "d 0 3" -e "c BCD ASC" -e "A \x0a" -e "w /tmp/numbers" -o /dev/null /tmp/bdata'
      Task here is to extract BCD coded numbers from the file
      `/tmp/bdata' and write them in ascii format with newline to file
      `/tmp/numbers'.  12 bytes long blocks containing the BCD-numbers
      start with three byte sequence of values `0x80', `0x50' and
      `0x0e'. First three bytes (the block start sequence) are removed
      (`d 0 3') rest of the block is transformed from BCD to Ascii (`c
-     BCD ASC') and a newline character is inserted at the end of the
-     block (`I \x0a').  All transformed blocks are written to
+     BCD ASC') and a newline character is appended at the end of the
+     block (`A \x0a').  All transformed blocks are written to
      `/tmp/numbers' (`w /tmp/numbers'). Nothing is written to the
      output (`-o /dev/null').
 `bbe -b ":525" -e "i 524 \x0a" -o /tmp/data_with_nl /tmp/data'
@@ -99,8 +99,8 @@ File: bbe.info,  Node: Invoking bbe,  Next: bbe programs,  Prev: Samples,  Up: T
 
 `bbe' accepts several commands to operate on blocks. Commands are
 executed in the same order as they appear in command line or in a
-script file.  Order is significant, because the changes made by
-previous commands are seen by next commands.
+script file.  Order is significant, because the changes made to current
+byte by previous commands are seen by next commands.
 
 * Menu:
 
@@ -207,6 +207,33 @@ in START and STOP:
 `\x0a, \x67 or \xff'
      Hexadecimal values
 
+   Also escape code `\y' can be used. Decimal values of `\y''s:
+
+`\a'
+     7
+
+`\b'
+     8
+
+`\t'
+     9
+
+`\n'
+     10
+
+`\v'
+     11
+
+`\f'
+     12
+
+`\r'
+     13
+
+`\;'
+     59
+     Semicolon must be escaped, because it is command delimitter.
+
    Values of N and M can be given in decimal, octal and hexadecimal:
 
 `123, 32 or 112232'
@@ -235,14 +262,14 @@ and STOP of block definition.
 Block commands are:
 -------------------
 
-`A STRING'
+`I STRING'
      Write the STRING to output stream before the block.
 
 `D [N]'
      Delete the N'th block. If N is not defined all blocks are deleted
      from output stream.  *Note*: First block is number one.
 
-`I STRING'
+`A STRING'
      Write the STRING to output stream after the block.
 
 `J N'
@@ -346,6 +373,18 @@ block, first byte is number zero.
      SOURCE and DEST must have equal length.  Separator `/' can be
      replaced by any character not present in SOURCE or DEST.
 
+`& c'
+     Performs binary and with C on block contents.
+
+`| c'
+     Performs binary or with C on block contents.
+
+`^ c'
+     Performs exclusive or with C on block contents.
+
+`~'
+     Performs binary negation on block contents.
+
 
 File: bbe.info,  Node: Limits,  Prev: Commands,  Up: Invoking bbe
 
@@ -384,7 +423,7 @@ Basic execution cycle:
      written to output stream (unless `-s' is defined) and step 2 is
      executed.
 
-  2. Block commands affecting the start of the block (`A', `D', `J',
+  2. Block commands affecting the start of the block (`I', `D', `J',
      `N', `F' and `B') are executed.
 
   3. The block is scanned byte by byte and all byte commands (lower
@@ -393,7 +432,7 @@ Basic execution cycle:
      is deleted, the following  commands don't 'see' the removed byte.
 
   4. When end of the block is reached the end of the block commands
-     (`I') are executed.
+     (`A') are executed.
 
   5. Next block is searched, data between the blocks, if not suppressed
      with `-s', is written to output stream.
@@ -408,7 +447,7 @@ Few examples:
           The quick brown fox j
      All spaces in the block are converted to X's, before conversion
      first 4 bytes are skipped.
-`echo "The quick brown fox jumps over a lazy dog" | bbe -b ":/ /" -e "J 1" -e "I \x0a"'
+`echo "The quick brown fox jumps over a lazy dog" | bbe -b ":/ /" -e "J 1" -e "A \x0a"'
      Output is:
           The quick
           brown
@@ -424,18 +463,18 @@ Few examples:
      Output is:
           The cast  brown cox jumps over a lazy dog
      Also the `f' in `fast' is converted to `c'.
-`echo "1234567890" | bbe -b ":1"  -e "L 9" -e "I -"'
+`echo "1234567890" | bbe -b ":1"  -e "L 9" -e "A -"'
      Output is
           1-2-3-4-5-6-7-8-9-0
      Minus is inserted after every 1 byte long block,but not after 9'th
      block.
 `bbe -s -b "/First line/:/Last line/" /tmp/text'
      Print lines between sentences `First line' and `Last line'.
-`bbe -s -b "%<a %:%</a>%" -e "s/\x0a/ /" -e "I \x0a" ./index.html'
+`bbe -s -b "%<a %:%</a>%" -e "s/\x0a/ /" -e "A \n" ./index.html'
      Extract all links from `./index.html'. To get one link per line,
      all newlines are converted to spaces and newline is added after
      every link.
-`bbe -b "/\x5f\x28\x02/:10" -s  -e "F d"  -e "p h" -e "I \x0a" ./bindata'
+`bbe -b "/\x5f\x28\x02/:10" -s  -e "F d"  -e "p h" -e "A \n" ./bindata'
      10 bytes long sequences starting with values `x5f' `x28' and `x02'
      are printed as hex values.  Also the file offset is printed before
      each sequence and new line is added after every sequence.  Example
@@ -444,7 +483,7 @@ Few examples:
           68898:x5f x28 x02 x39 x46 x5f x81 x64 x41 x05
           69194:x5f x28 x02 x42 x36 x5f x81 x64 x41 x05
 
-`bbe -b "/Linux/:5" -s -e "N;D;I \x0a" /bin/* | uniq'
+`bbe -b "/Linux/:5" -s -e "N;D;A \x0a" /bin/* | uniq'
      Print the files names of those programs in /bin directory which
      contains word `Linux'.  Example output:
           /bin/loadkeys:
@@ -452,10 +491,12 @@ Few examples:
           /bin/ps:
           /bin/uname:
 
-`bbe -b "/\x5f\x81\x18\x06/:10" -s -e "B d;d 0 4;c BCD ASC;I \x0a" ./bindata'
+`bbe -b "/\x5f\x81\x18\x06/:10" -s -e "B d;d 0 4;c BCD ASC;A \n" ./bindata'
      Print BCD numbers and their block numbers in ascii format. Numbers
      start with sequence `x5f' `x81' `x18' `x06'.  The start sequence
      is not printed.
+`bbe -b "/\x5f/:2" -e "j 1;& \xf0" -o newdata bindata'
+     The least significant nybble of bytes after `x5f' is cleared.
 
 
 File: bbe.info,  Node: Problems,  Prev: bbe programs,  Up: Top
@@ -480,11 +521,11 @@ Node: Top766
 Node: Overview1811
 Node: Samples2298
 Node: Invoking bbe3696
-Node: Invocation4214
-Node: Block5237
-Node: Commands7041
-Node: Limits10744
-Node: bbe programs11297
-Node: Problems14962
+Node: Invocation4230
+Node: Block5253
+Node: Commands7297
+Node: Limits11229
+Node: bbe programs11782
+Node: Problems15563
 
 End Tag Table

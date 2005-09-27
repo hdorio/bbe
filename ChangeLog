@@ -1,3 +1,10 @@
+2005-10-02  Timo Savinen <tjsa.iki.fi>
+    * Version 0.1.2
+    * escape codes for \n \t \r \a \b \v \f
+    * "p d" fixed
+    * Meaning of A and I flipped (to what sed has)
+    * check for gnu functions, compiles ok in hp-ux with gcc.
+    * Bitwise operators &,|,^ and ~
 2005-09-25  Timo Savinen <tjsa.iki.fi>
     * Version 0.1.1
     * Bug fixes (\\ escape in strings)
