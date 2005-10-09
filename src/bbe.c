@@ -20,7 +20,7 @@
  *
  */
 
-/* $Id: bbe.c,v 1.33 2005/09/30 10:58:15 timo Exp $ */
+/* $Id: bbe.c,v 1.35 2005/10/06 16:48:06 timo Exp $ */
 
 #include "bbe.h"
 #ifdef HAVE_GETOPT_H
@@ -43,7 +43,7 @@ static char *program = "bbe";
 #ifdef VERSION
 static char *version = VERSION;
 #else
-static char *version = "0.1.2";
+static char *version = "0.1.3";
 #endif
 
 #ifdef PACKAGE_BUGREPORT
@@ -73,7 +73,7 @@ char *convert_strings[] = {
 };
 
 /* format types for p command */
-char *p_formats="DOHA";
+char *p_formats="DOHAB";
 
 /* formats for F and B commands */
 char *FB_formats="DOH";
@@ -662,7 +662,7 @@ help(FILE *stream)
     fprintf(stream,"\t\tSuppress normal output, print only block contents.\n");
     fprintf(stream,"-?, --help\n");
     fprintf(stream,"\t\tDisplay this help and exit.\n");
-    fprintf(stream,"-V, --Version\n");
+    fprintf(stream,"-V, --version\n");
 #else
     fprintf(stream,"-b BLOCK\n");
     fprintf(stream,"\t\tBlock definition.\n");

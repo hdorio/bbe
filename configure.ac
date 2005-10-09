@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(bbe, 0.1.2, tjsa@iki.fi)
+AC_INIT(bbe, 0.1.3, tjsa@iki.fi)
 AC_CONFIG_SRCDIR(src/bbe.c)
 AC_CONFIG_AUX_DIR(config)
 AM_INIT_AUTOMAKE

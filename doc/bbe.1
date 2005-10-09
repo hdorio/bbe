@@ -25,12 +25,12 @@
 .\" .br        insert line break
 .\" .sp <n>    insert n+1 empty lines
 .\" for manpage-specific macros, see man(7)
-.TH "BBE" "1" "August 24, 2005" "" ""
+.TH "BBE" "1" "2005-10-05" "" ""
 .SH "NAME"
-bbe \- Binary block editor
+bbe \- binary block editor
 .SH "SYNOPSIS"
 .B bbe
-.RI [ options ]... [input\-file]...
+.RI [ options ]...
 
 .SH "DESCRIPTION"
 \fBbbe\fP is a sed\-like editor for binary files. It performs binary transformations on the blocks of input stream.
@@ -140,7 +140,7 @@ Insert \fIstring\fR starting at position \fIn\fR.
 .TP 
 p \fIformat\fR
 The contents of block is printed in format defined by \fIformat\fR. \fIformat\fR
-can have any of the formats H, D, O and A for Hexadecimal, Decimal, Octal or Ascii.
+can have any of the formats H, D, O, A and B for Hexadecimal, Decimal, Octal, Asciii and Binary.
 .TP 
 s/\fIsearch\fR/\fIreplace\fR/
 Replace all occurrences of \fIsearch\fR with \fIreplace\fR.

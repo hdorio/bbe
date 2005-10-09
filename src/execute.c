@@ -20,7 +20,7 @@
  *
  */
 
-/* $Id: execute.c,v 1.23 2005/09/30 10:58:15 timo Exp $ */
+/* $Id: execute.c,v 1.25 2005/10/05 16:06:11 timo Exp $ */
 
 #include "bbe.h"
 #include <stdlib.h>
@@ -51,6 +51,9 @@ static struct command *current_commands;
 /* commands to be executed at end of buffer  */
 #define BLOCK_END_COMMANDS "AJL"
 
+/* most significant bit of byte */
+#define BYTE_MASK (1 << (sizeof(unsigned char) * 8 - 1))
+
  
 /* byte_to_string, convert byte value to visible string,
    either hex (H), decimal (D), octal (O) or ascii (A)
@@ -58,7 +61,9 @@ static struct command *current_commands;
 char *
 byte_to_string(unsigned char byte,char format)
 {
-    static char string[10];
+    static char string[128];
+    int i;
+    int j;
 
     switch(format)
     {
@@ -73,6 +78,15 @@ byte_to_string(unsigned char byte,char format)
             break;
         case 'A':
             sprintf(string,"%c",isprint(byte) ? byte : ' ');
+            break;
+        case 'B':
+            i = 0;
+            do
+            {
+                string[i] = ((BYTE_MASK >> i) & byte) ? '1' : '0';
+                i++;
+            } while (BYTE_MASK >> i);
+            string[i] = 0;
             break;
         default:
             string[0] = 0;
@@ -233,7 +247,7 @@ execute_commands(struct command *c,char *command_letters)
                                         c->rpos = 0;
                                         if(last_byte())  // unless last byte of block
                                         {
-                                            if(*out_buffer.write_pos >= '0' && *out_buffer.write_pos <= '9')
+                                            if(*out_buffer.write_pos >= '0' && *out_buffer.write_pos <= '9') 
                                             {
                                                 a = *out_buffer.write_pos - '0';
                                                 a = (a << 4) & 0xf0;
@@ -257,6 +271,7 @@ execute_commands(struct command *c,char *command_letters)
                                         } else
                                         {
                                             b = 0x0f;
+                                            if(*out_buffer.write_pos == 'F' || *out_buffer.write_pos == 'f') delete_this_byte=1;
                                         }
                                         out_buffer.write_pos[-1] = a | b;
                                     }
@@ -273,10 +288,16 @@ execute_commands(struct command *c,char *command_letters)
                                         a = (*out_buffer.write_pos >> 4) & 0x0f;
                                         b = *out_buffer.write_pos & 0x0f;
                                         *out_buffer.write_pos = '0' + a;
-                                        if(!delete_this_byte && b != 0x0f) 
+                                        if(!delete_this_byte) 
                                         {
                                             write_next_byte();
-                                            *out_buffer.write_pos = '0' + b;
+                                            if(b == 0x0f)
+                                            {
+                                                *out_buffer.write_pos = 'F';
+                                            } else
+                                            {
+                                                *out_buffer.write_pos = '0' + b;
+                                            }
                                         }
                                     }
                                     break;

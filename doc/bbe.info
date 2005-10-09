@@ -351,6 +351,9 @@ block, first byte is number zero.
     A
           Ascii, nonprintable characters are printed as space.
 
+    B
+          Binary.
+
      FORMAT can contain several codes, values are then separated by
      hyphen.
 
@@ -524,8 +527,8 @@ Node: Invoking bbe3696
 Node: Invocation4230
 Node: Block5253
 Node: Commands7297
-Node: Limits11229
-Node: bbe programs11782
-Node: Problems15563
+Node: Limits11254
+Node: bbe programs11807
+Node: Problems15588
 
 End Tag Table
