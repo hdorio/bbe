@@ -20,7 +20,7 @@
  *
  */
 
-/* $Id: buffer.c,v 1.30 2005/09/30 10:58:15 timo Exp $ */
+/* $Id: buffer.c,v 1.32 2005/10/14 13:25:54 timo Exp $ */
 
 #include "bbe.h"
 #include <stdlib.h>
@@ -140,6 +140,7 @@ init_buffer()
     in_buffer.block_num = 0;
 
     out_buffer.buffer = xmalloc(OUTPUT_BUFFER_SIZE);
+    out_buffer.end = out_buffer.buffer + OUTPUT_BUFFER_SIZE;
     out_buffer.write_pos = out_buffer.buffer;
     out_buffer.low_pos = out_buffer.buffer + OUTPUT_BUFFER_SAFE;
 }
@@ -311,7 +312,7 @@ mark_block_end()
                         }
                         if(i) 
                         {
-                            scan -= i;
+                            scan -= i - 1;
                         } else
                         {
                             scan++;
@@ -320,7 +321,7 @@ mark_block_end()
 
                     if (i == block.start.S.length)
                     {
-                        in_buffer.block_end = scan - 1;
+                        in_buffer.block_end = scan - 2;
                     }
                 } else
                 {
@@ -405,6 +406,7 @@ find_block()
                 if(block.start.S.length > 0)
                 {
                     i = 0;
+                    if(in_buffer.stream_end == NULL) safe_search += block.start.S.length - 1;
                     while(in_buffer.read_pos <= safe_search - block.start.S.length + 1 && i < block.start.S.length)
                     {
                         i = 0;
@@ -501,7 +503,7 @@ write_next_byte()
 
     out_buffer.write_pos++;
     out_buffer.block_offset++;
-    if(out_buffer.write_pos > out_buffer.buffer + OUTPUT_BUFFER_SIZE)
+    if(out_buffer.write_pos > out_buffer.end)
     {
         save_pos = out_buffer.cycle_start < out_buffer.low_pos ? out_buffer.cycle_start : out_buffer.low_pos;
         if(save_pos == out_buffer.buffer) 

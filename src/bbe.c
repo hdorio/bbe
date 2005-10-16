@@ -20,7 +20,7 @@
  *
  */
 
-/* $Id: bbe.c,v 1.35 2005/10/06 16:48:06 timo Exp $ */
+/* $Id: bbe.c,v 1.37 2005/10/14 14:04:45 timo Exp $ */
 
 #include "bbe.h"
 #ifdef HAVE_GETOPT_H
@@ -57,7 +57,7 @@ static char *email_address = "tjsa@iki.fi";
 struct block block;
 
 /* commands to be executed */
-struct command *commands = NULL;
+struct commands cmds;
 
 /* extra info for panic */
 char *panic_info = NULL;
@@ -71,6 +71,14 @@ char *convert_strings[] = {
     "ASCBCD",
           "",
 };
+/* commands to be executed at start of buffer */
+#define BLOCK_START_COMMANDS "DIJLFBN"
+
+/* commands to be executed for each byte  */
+#define BYTE_COMMANDS "acdirsywjpl&|^~"
+
+/* commands to be executed at end of buffer  */
+#define BLOCK_END_COMMANDS "A"
 
 /* format types for p command */
 char *p_formats="DOHAB";
@@ -385,7 +393,7 @@ parse_block(char *bs)
 void
 parse_command(char *command_string)
 {
-    struct command *curr,*new;
+    struct command_list *curr,*new,**start;
     char *c,*p,*buf;
     char *f;
     char *token[10];
@@ -407,16 +415,32 @@ parse_command(char *command_string)
     while(token[i - 1] != NULL && i < 10) token[i++] = strtok(NULL," \t\n");
     i--;
 
-    curr = commands;
+    if(strchr(BLOCK_START_COMMANDS,token[0][0]) != NULL)
+    {
+        curr = cmds.block_start;
+        start = &cmds.block_start;
+    } else if(strchr(BYTE_COMMANDS,token[0][0]) != NULL)
+    {
+        curr = cmds.byte;
+        start = &cmds.byte;
+    } else if(strchr(BLOCK_END_COMMANDS,token[0][0]) != NULL)
+    {
+        curr = cmds.block_end;
+        start = &cmds.block_end;
+    } else
+    {
+        panic("Error in command",command_string,NULL);
+    }
+
     if (curr != NULL)
     {
         while(curr->next != NULL)  curr = curr->next;
     }
-    new = xmalloc(sizeof(struct command));
+    new = xmalloc(sizeof(struct command_list));
     new->next = NULL;
-    if(commands == NULL)
+    if(curr == NULL)
     {
-        commands = new;
+        *start = new;
     } else
     {
         curr->next = new;
@@ -707,6 +731,9 @@ main (int argc, char **argv)
     int opt;
 
     block.type = 0;
+    cmds.block_start = NULL;
+    cmds.byte = NULL;
+    cmds.block_end = NULL;
 #ifdef HAVE_GETOPT_LONG
     while ((opt = getopt_long(argc,argv,short_opts,long_opts,NULL)) != -1)
 #else
@@ -757,8 +784,8 @@ main (int argc, char **argv)
     }
 
     init_buffer();
-    init_commands(commands);
-    execute_program(commands);
-    close_commands(commands); 
+    init_commands(&cmds);
+    execute_program(&cmds);
+    close_commands(&cmds); 
     exit(EXIT_SUCCESS);
 }

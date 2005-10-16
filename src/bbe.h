@@ -20,7 +20,7 @@
  *
  */
 
-/* $Id: bbe.h,v 1.24 2005/09/29 11:27:01 timo Exp $ */
+/* $Id: bbe.h,v 1.25 2005/10/13 13:48:46 timo Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -100,7 +100,7 @@ struct block {
 
 /* Commands */
 
-struct command {
+struct command_list {
     char letter;            // command letter (D,A,s,..)
     off_t offset;           // n for D,r,i and d commands
     off_t count;              // count for d command
@@ -110,7 +110,13 @@ struct command {
     off_t s2_len;
     int rpos;               // replace position for s,r and y
     FILE *fd;               // stream for w command
-    struct command *next;
+    struct command_list *next;
+};
+
+struct commands {
+    struct command_list *block_start;
+    struct command_list *byte;
+    struct command_list *block_end;
 };
 
 /* in/out files */
@@ -136,6 +142,7 @@ struct input_buffer {
 /* output buffer */
 struct output_buffer {
     unsigned char *buffer;
+    unsigned char *end;
     unsigned char *write_pos;    // current write psotion;
     unsigned char *low_pos;      // low water mark
     unsigned char *cycle_start;  // at this position started the last command cycle 
@@ -189,10 +196,10 @@ extern void
 flush_buffer();
 
 extern void
-init_commands(struct command *c);
+init_commands(struct commands *c);
 
 extern void
-close_commands(struct command *c);
+close_commands(struct commands *c);
 
 extern inline void
 set_cycle_start();
@@ -204,7 +211,7 @@ extern void
 write_w_command(unsigned char *buf,size_t length);
 
 extern void
-execute_program(struct command *c);
+execute_program(struct commands *c);
 
 extern void
 reverse_bytes(size_t count);
