@@ -1,17 +1,23 @@
-2005-10-16  Timo Savinen <tjsa.iki.fi>
+2005-10-23  Timo Savinen <tjsa@iki.fi>
+
+    * Version 0.1.5
+    * %B and %nB for block number in filename of w-command
+    * Documentation corrected
+
+2005-10-16  Timo Savinen <tjsa@iki.fi>
     
     * Version 0.1.4
     * Better performace
     * bug in buffer definition /string/: and :/string/ fixed
 
-2005-10-09  Timo Savinen <tjsa.iki.fi>
+2005-10-09  Timo Savinen <tjsa@iki.fi>
 
     * Version 0.1.3
     * bug in c BCD ASC
     * p b added
     * Typo in usage fixed
 
-2005-10-02  Timo Savinen <tjsa.iki.fi>
+2005-10-02  Timo Savinen <tjsa@iki.fi>
 
     * Version 0.1.2
     * escape codes for \n \t \r \a \b \v \f
@@ -20,7 +26,7 @@
     * check for gnu functions, compiles ok in hp-ux with gcc.
     * Bitwise operators &,|,^ and ~
 
-2005-09-25  Timo Savinen <tjsa.iki.fi>
+2005-09-25  Timo Savinen <tjsa@iki.fi>
 
     * Version 0.1.1
     * Bug fixes (\\ escape in strings)

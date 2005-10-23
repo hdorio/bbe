@@ -13,6 +13,7 @@
 # PARTICULAR PURPOSE.
 
 @SET_MAKE@
+
 srcdir = @srcdir@
 top_srcdir = @top_srcdir@
 VPATH = @srcdir@
@@ -57,12 +58,20 @@ TEXINFOS = bbe.texi
 TEXI2DVI = texi2dvi
 TEXI2PDF = $(TEXI2DVI) --pdf --batch
 MAKEINFOHTML = $(MAKEINFO) --html
-AM_MAKEINFOHTMLFLAGS = $(AM_MAKEINFOFLAGS)
 DVIPS = dvips
-am__installdirs = "$(DESTDIR)$(infodir)" "$(DESTDIR)$(man1dir)"
+am__installdirs = "$(DESTDIR)$(infodir)" "$(DESTDIR)$(man1dir)" \
+	"$(DESTDIR)$(docdir)"
 man1dir = $(mandir)/man1
 NROFF = nroff
 MANS = $(man_MANS)
+am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
+am__vpath_adj = case $$p in \
+    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
+    *) f=$$p;; \
+  esac;
+am__strip_dir = `echo $$p | sed -e 's|^.*/||'`;
+docDATA_INSTALL = $(INSTALL_DATA)
+DATA = $(doc_DATA)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMDEP_FALSE = @AMDEP_FALSE@
@@ -146,7 +155,11 @@ sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 man_MANS = bbe.1
 info_TEXINFOS = bbe.texi
-EXTRA_DIST = $(man_MANS) $(info_TEXINFOS)
+CLEANFILES = bbe.html
+docdir = $(datadir)/doc
+doc_DATA = bbe.html
+AM_MAKEINFOHTMLFLAGS = --no-split
+EXTRA_DIST = $(man_MANS) $(info_TEXINFOS) $(doc_DATA)
 all: all-am
 
 .SUFFIXES:
@@ -229,7 +242,6 @@ $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 $(srcdir)/bbe.info: bbe.texi 
 bbe.dvi: bbe.texi 
 bbe.pdf: bbe.texi 
-bbe.html: bbe.texi 
 .dvi.ps:
 	TEXINPUTS="$(am__TEXINFO_TEX_DIR)$(PATH_SEPARATOR)$$TEXINPUTS" \
 	$(DVIPS) -o $@ $<
@@ -327,6 +339,23 @@ uninstall-man1:
 	  echo " rm -f '$(DESTDIR)$(man1dir)/$$inst'"; \
 	  rm -f "$(DESTDIR)$(man1dir)/$$inst"; \
 	done
+install-docDATA: $(doc_DATA)
+	@$(NORMAL_INSTALL)
+	test -z "$(docdir)" || $(mkdir_p) "$(DESTDIR)$(docdir)"
+	@list='$(doc_DATA)'; for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  f=$(am__strip_dir) \
+	  echo " $(docDATA_INSTALL) '$$d$$p' '$(DESTDIR)$(docdir)/$$f'"; \
+	  $(docDATA_INSTALL) "$$d$$p" "$(DESTDIR)$(docdir)/$$f"; \
+	done
+
+uninstall-docDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(doc_DATA)'; for p in $$list; do \
+	  f=$(am__strip_dir) \
+	  echo " rm -f '$(DESTDIR)$(docdir)/$$f'"; \
+	  rm -f "$(DESTDIR)$(docdir)/$$f"; \
+	done
 tags: TAGS
 TAGS:
 
@@ -366,9 +395,9 @@ distdir: $(DISTFILES)
 	  dist-info
 check-am: all-am
 check: check-am
-all-am: Makefile $(INFO_DEPS) $(MANS)
+all-am: Makefile $(INFO_DEPS) $(MANS) $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(infodir)" "$(DESTDIR)$(man1dir)"; do \
+	for dir in "$(DESTDIR)$(infodir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(docdir)"; do \
 	  test -z "$$dir" || $(mkdir_p) "$$dir"; \
 	done
 install: install-am
@@ -388,6 +417,7 @@ install-strip:
 mostlyclean-generic:
 
 clean-generic:
+	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
 
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
@@ -407,15 +437,13 @@ dvi: dvi-am
 
 dvi-am: $(DVIS)
 
-html: html-am
-
 html-am: $(HTMLS)
 
 info: info-am
 
 info-am: $(INFO_DEPS)
 
-install-data-am: install-info-am install-man
+install-data-am: install-docDATA install-info-am install-man
 
 install-exec-am:
 
@@ -472,21 +500,27 @@ ps: ps-am
 
 ps-am: $(PSS)
 
-uninstall-am: uninstall-info-am uninstall-man
+uninstall-am: uninstall-docDATA uninstall-info-am uninstall-man
 
 uninstall-man: uninstall-man1
 
 .PHONY: all all-am check check-am clean clean-generic dist-info \
 	distclean distclean-generic distdir dvi dvi-am html html-am \
 	info info-am install install-am install-data install-data-am \
-	install-exec install-exec-am install-info install-info-am \
-	install-man install-man1 install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
+	install-docDATA install-exec install-exec-am install-info \
+	install-info-am install-man install-man1 install-strip \
+	installcheck installcheck-am installdirs maintainer-clean \
 	maintainer-clean-aminfo maintainer-clean-generic mostlyclean \
 	mostlyclean-aminfo mostlyclean-generic pdf pdf-am ps ps-am \
-	uninstall uninstall-am uninstall-info-am uninstall-man \
-	uninstall-man1
+	uninstall uninstall-am uninstall-docDATA uninstall-info-am \
+	uninstall-man uninstall-man1
 
+
+bbe.html: bbe.texi bbe.info
+
+html: bbe.html
+
+.PHONY: html
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

@@ -20,7 +20,7 @@
  *
  */
 
-/* $Id: bbe.c,v 1.37 2005/10/14 14:04:45 timo Exp $ */
+/* $Id: bbe.c,v 1.39 2005/10/20 08:02:56 timo Exp $ */
 
 #include "bbe.h"
 #ifdef HAVE_GETOPT_H
@@ -406,8 +406,7 @@ parse_command(char *command_string)
     if (p[0] == 0) return;      // empty line
     if (p[0] == '#') return;       // comment
 
-    c = strdup(p);
-    if(c == NULL) panic("Out of memory",NULL,NULL);
+    c = xstrdup(p);
 
     i = 0;
     token[i] = strtok(c," \t\n");
@@ -468,7 +467,7 @@ parse_command(char *command_string)
             break;
         case 'w':
             if(i != 2 || strlen(token[0]) > 1) panic("Error in command",command_string,NULL);
-            new->s1 = strdup(token[1]);
+            new->s1 = xstrdup(token[1]);
             break;
         case 'j':
         case 'J':

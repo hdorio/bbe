@@ -25,7 +25,7 @@
 .\" .br        insert line break
 .\" .sp <n>    insert n+1 empty lines
 .\" for manpage-specific macros, see man(7)
-.TH "BBE" "1" "2005-10-05" "" ""
+.TH "BBE" "1" "2005-10-20" "" ""
 .SH "NAME"
 bbe \- binary block editor
 .SH "SYNOPSIS"
@@ -129,7 +129,7 @@ Before printing a block, the block number is printed (first block == 1)
 \fIf\fR can be H, D or O for Hexadecimal, Decimal or Octal format of block number.
 .LP 
 \fBByte commands\fR
-.br 
+.TP 
 \fIn\fR in byte commands is offset from the beginning of current block (starts from zero).
 .TP 
 r \fIn\fR \fIstring\fR
@@ -167,7 +167,8 @@ l \fIn\fR
 Commands after the l\-command are ignored from \fIn\fR'th byte of the block.
 .TP 
 w \fIfile\fR
-Write bytes from the current block to file \fIfile\fR. Commands before w\-command have effect to what will be written.
+Write bytes from the current block to file \fIfile\fR. Commands before w\-command have effect to what will be written. %B or %nB in  \fIfile\fR will be replaced by current block number. n in %nB is field length,
+leading zero in n causes the block number to be left padded with zeroes.
 .TP 
 & \fIbyte\fR
 Performs binary and with \fIbyte\fR.

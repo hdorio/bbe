@@ -20,7 +20,7 @@
  *
  */
 
-/* $Id: execute.c,v 1.27 2005/10/14 13:23:20 timo Exp $ */
+/* $Id: execute.c,v 1.31 2005/10/21 07:53:26 timo Exp $ */
 
 #include "bbe.h"
 #include <stdlib.h>
@@ -40,6 +40,11 @@ static int skip_this_block;
 
 /* tells if i or s commands are inserting bytes, meaningfull at end of the block */
 static int inserting;
+
+/* tells if there is w-command with file having %d 
+   this is only for performance 
+   */
+static int w_commands_block_num = 0;
 
 /* command list for write_w_command */
 static struct command_list *current_byte_commands;
@@ -381,25 +386,119 @@ write_w_command(unsigned char *buf,size_t length)
 {
     struct command_list *c;
 
+    if(skip_this_block) return;
+
     c = current_byte_commands;
 
     while(c != NULL)
     {
         if(c->letter == 'w')
         {
-            if(fwrite(buf,1,length,c->fd) != length) panic("Cannot write to file",c->s1,strerror(errno));
+            if(fwrite(buf,1,length,c->fd) != length) panic("Cannot write to file",c->s2,strerror(errno));
+            if(length) c->count = 1;    // file was written
         }
         c = c->next;
     }
 }
 
+/* finds the %B or %nB format string from the filename of w-command 
+   returns pointer to %-postion and the length of the format string
+   */
+char *
+find_block_w_file(char *file,int *len)
+{
+    char *f,*ppos;
 
+    f = file;
+
+    while(*f != 0)
+    {
+        if(*f == '%')
+        {
+            ppos = f;
+            f++;
+            while(f - ppos < 4 && isdigit(*f)) f++;
+            if(*f == 'B')
+            {
+                *len = (int) (f - ppos) + 1;
+                return ppos;
+            }
+            f = ppos;
+        }
+        f++;
+    }
+    return NULL;
+}
+
+/* replaces all %B or %nB format strings with block number in a file name */
+void
+bn_printf(char *file,char *str,off_t block_number)
+{
+    char *bstart,*f;
+    char num[128],format[64];
+    int blen;
+
+    f = str;
+    file[0] = 0;
+
+    while((bstart = find_block_w_file(f,&blen)) != NULL)
+    {
+        num[0] = 0;
+        format[0] = 0;
+        strncat(file,f,bstart - f);
+        strncpy(format,bstart,blen-1);
+        format[blen-1] = 0;
+        strcat(format,"lld");
+        sprintf(num,format,(long long) block_number);
+        if(strlen(file) + strlen(num) >= 4096) panic("Filename for w-command too long",str,NULL);
+        strcat(file,num);
+        f = bstart + blen;
+    }
+    strcat(file,f);
+}
+
+/* close (if open) and open next w-command files for new block */
+void
+open_w_files(off_t block_number)
+{
+    struct command_list *c;
+    static char file[4096];
+
+    c = current_byte_commands;
+
+    while(c != NULL)
+    {
+        if(c->letter == 'w' && c->offset)
+        {
+            if(c->fd != NULL) 
+            {
+                if(fclose(c->fd) != 0) panic("Error closing file",c->s2,strerror(errno));
+                if (!c->count && c->s2 != NULL)  // remove if empty
+                {
+                    unlink(c->s2);
+                }
+                c->fd = NULL;
+            }
+
+            bn_printf(file,c->s1,block_number);
+            c->fd = fopen(file,"w");
+            if(c->fd == NULL) panic("Cannot open file for writing",file,strerror(errno));
+            c->count = 0;
+            if(c->s2 != NULL) free(c->s2);
+            c->s2 = xstrdup(file);
+        }
+        c = c->next;
+    }
+}
+
+                
 
 /* init_commands, initialize those wich need it, currently w - open file and rpos=0 for all */
 void
 init_commands(struct commands *commands)
 {
     struct command_list *c;
+    int wlen;
 
     c = commands->byte;
 
@@ -408,8 +507,20 @@ init_commands(struct commands *commands)
         switch(c->letter)
         {
             case 'w':
-                c->fd = fopen(c->s1,"w");
-                if(c->fd == NULL) panic("Cannot open file for writing",c->s1,strerror(errno));
+                if(find_block_w_file(c->s1,&wlen) != NULL)
+                {
+                    c->fd = NULL;
+                    c->offset = 1;
+                    w_commands_block_num = 1;
+                    c->s2 = NULL;
+                } else
+                {
+                    c->fd = fopen(c->s1,"w");
+                    if(c->fd == NULL) panic("Cannot open file for writing",c->s1,strerror(errno));
+                    c->offset = 0;
+                    c->s2 = xstrdup(c->s1);
+                }
+                c->count = 0;
                 break;
         }
         c = c->next;
@@ -430,7 +541,14 @@ close_commands(struct commands *commands)
         switch(c->letter)
         {
             case 'w':
-                if(fclose(c->fd) != 0) panic("Error in closing file",c->s1,strerror(errno));
+                if(c->fd != NULL)
+                {
+                    if(fclose(c->fd) != 0) panic("Error in closing file",c->s2,strerror(errno));
+                    if(!c->count && c->s2 != NULL)
+                    {
+                        unlink(c->s2);
+                    }
+                }
                 break;
         }
         c = c->next;
@@ -464,6 +582,7 @@ execute_program(struct commands *commands)
         delete_this_block = 0;
         out_buffer.block_offset = 0;
         skip_this_block = 0;
+        if(w_commands_block_num) open_w_files(in_buffer.block_num);
         execute_commands(commands->block_start);
         do
         {

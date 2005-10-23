@@ -59,7 +59,7 @@ basic byte related transformations on blocks of input stream. `bbe' is
 non-interactive command line tool and can be used as a part of a
 pipeline. `bbe' makes only one pass over input stream.
 
-   `bbe' also contains grep-like features, like printing the filename,
+   `bbe' contains also grep-like features, like printing the filename,
 offset and block number.
 
 
@@ -152,8 +152,7 @@ The format for running the `bbe' program is:
      Print the version number of `bbe' and then exit successfully.
 
    All remaining options are names of input files, if no input files
-are specified, then the standard input is read.  `-' means standard
-input.
+are specified or `-' is given, then the standard input is read.
 
 
 File: bbe.info,  Node: Block,  Next: Commands,  Prev: Invocation,  Up: Invoking bbe
@@ -232,7 +231,7 @@ in START and STOP:
 
 `\;'
      59
-     Semicolon must be escaped, because it is command delimitter.
+     Semicolon must be escaped, because it is a command delimitter.
 
    Values of N and M can be given in decimal, octal and hexadecimal:
 
@@ -284,8 +283,8 @@ Block commands are:
      block.
 
 `N'
-     Before block contents the file name where the block starts is
-     printed with colon.
+     Before block contents the file name where the current block starts
+     is printed with colon.
 
 `F F'
      Before block contents the current stream offset and colon is
@@ -302,7 +301,7 @@ Block commands are:
 
 `B F'
      Before block contents the current block number and colon is
-     printed in format specified by F.  Block numbering starts at zero.
+     printed in format specified by F.  Block numbering starts at one.
      F can have one of the sames codes as `F'-command
 
 Byte commands are:
@@ -368,8 +367,14 @@ block, first byte is number zero.
 
 `w `file''
      Contents of blocks are written to file `file'. *Note*: Data
-     inserted by commands `A' and `I' are not written to file `file'
-     and `J' and `L' commands have no effect on `w'-commands.
+     inserted by commands `A' and `I' are written to file `file' and
+     `j' and `l' commands have no effect on `w'-commands. Zero size
+     files are not preserved.
+     Filename can contain format string `%B' or `%nB', these format
+     strings are replace by current block number (starting from one),
+     causing every block to have it's own file.  In `%nB', the `n' is
+     field width in range 0-99. If `n' has a leading zero, then the
+     block numbers will be left padded with zeroes.
 
 `y/SOURCE/DEST/'
      Translate bytes in SOURCE to the corresponding bytes in DEST.
@@ -469,8 +474,8 @@ Few examples:
 `echo "1234567890" | bbe -b ":1"  -e "L 9" -e "A -"'
      Output is
           1-2-3-4-5-6-7-8-9-0
-     Minus is inserted after every 1 byte long block,but not after 9'th
-     block.
+     Hyphen is inserted after every 1 byte long block,but not after
+     9'th block.
 `bbe -s -b "/First line/:/Last line/" /tmp/text'
      Print lines between sentences `First line' and `Last line'.
 `bbe -s -b "%<a %:%</a>%" -e "s/\x0a/ /" -e "A \n" ./index.html'
@@ -500,6 +505,11 @@ Few examples:
      is not printed.
 `bbe -b "/\x5f/:2" -e "j 1;& \xf0" -o newdata bindata'
      The least significant nybble of bytes after `x5f' is cleared.
+`bbe -b "/\xff\xd8\xff/:/\xff\xd9/" -s -e "w pic%02B.jpg" -o /dev/null manual.pdf'
+     Extract jpg-images from pdf-file to separate jpg-files (assuming
+     that the jpg start/stop sequences does not appear in other context
+     than jpg-images).  Files will be named as `pic01.jpg',
+     `pic02.jpg', `pic03.jpg',...
 
 
 File: bbe.info,  Node: Problems,  Prev: bbe programs,  Up: Top
@@ -525,10 +535,10 @@ Node: Overview1811
 Node: Samples2298
 Node: Invoking bbe3696
 Node: Invocation4230
-Node: Block5253
-Node: Commands7297
-Node: Limits11254
-Node: bbe programs11807
-Node: Problems15588
+Node: Block5242
+Node: Commands7288
+Node: Limits11616
+Node: bbe programs12169
+Node: Problems16270
 
 End Tag Table

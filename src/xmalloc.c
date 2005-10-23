@@ -20,10 +20,11 @@
  *
  */
 
-/* $Id: xmalloc.c,v 1.2 2005/09/04 15:58:29 timo Exp $ */
+/* $Id: xmalloc.c,v 1.3 2005/10/19 18:39:13 timo Exp $ */
 
 #include "bbe.h"
 #include <stdlib.h>
+#include <string.h>
 
 void *
 xmalloc (size_t size)
@@ -31,5 +32,13 @@ xmalloc (size_t size)
     register void *value = malloc(size);
     if (value == 0) panic("Out of memory",NULL,NULL);
     return value;
+}
+
+char *
+xstrdup(char *str)
+{
+    char *ret = strdup(str);
+    if (ret == NULL) panic("Out of memory",NULL,NULL);
+    return ret;
 }
 

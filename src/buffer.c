@@ -20,7 +20,7 @@
  *
  */
 
-/* $Id: buffer.c,v 1.32 2005/10/14 13:25:54 timo Exp $ */
+/* $Id: buffer.c,v 1.33 2005/10/19 18:39:13 timo Exp $ */
 
 #include "bbe.h"
 #include <stdlib.h>
@@ -50,13 +50,12 @@ set_output_file(char *file)
     if(file == NULL)
     {
         out_stream.fd = STDOUT_FILENO;
-        out_stream.file = "stdout";
+        out_stream.file = "(stdout)";
     } else
     {
         out_stream.fd = open(file,O_WRONLY | O_CREAT | O_TRUNC,S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH);
         if(out_stream.fd == -1) panic("Cannot open for writing",file,strerror(errno));
-        out_stream.file = strdup(file);
-        if (out_stream.file ==  NULL) panic("Out of memory",NULL,NULL);
+        out_stream.file = xstrdup(file);
     }
 }
 
@@ -95,13 +94,12 @@ set_input_file(char *file)
     if(file[0] == '-' && file[1] == 0)
     {
         new->fd = STDIN_FILENO;
-        new->file = "stdin";
+        new->file = "(stdin)";
     } else
     {
         new->fd = open(file,O_RDONLY);
         if(new->fd == -1) panic("Cannot open file for reading",file,strerror(errno));
-        new->file = strdup(file);
-        if (new->file ==  NULL) panic("Out of menory",NULL,NULL);
+        new->file = xstrdup(file);
     }
 }
 
