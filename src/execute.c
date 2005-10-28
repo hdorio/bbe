@@ -20,7 +20,7 @@
  *
  */
 
-/* $Id: execute.c,v 1.31 2005/10/21 07:53:26 timo Exp $ */
+/* $Id: execute.c,v 1.32 2005/10/27 16:37:14 timo Exp $ */
 
 #include "bbe.h"
 #include <stdlib.h>
@@ -204,6 +204,7 @@ execute_commands(struct command_list *c)
                         break;
                 }
                 if(delete_this_byte) break;
+                if(c->fpos == in_buffer.block_offset) break;
                 p = out_buffer.write_pos;
                 i = 0;
                 while(*p == c->s1[i] && i < c->s1_len)
@@ -215,6 +216,7 @@ execute_commands(struct command_list *c)
                 }
                 if(i == c->s1_len) 
                 {
+                    c->fpos = in_buffer.block_offset;
                     if(c->s1_len > 1 || c->s2_len > 1) c->rpos = 1;
                     if(c->s2_len) 
                     {
@@ -562,6 +564,7 @@ reset_rpos(struct command_list *c)
     while(c != NULL)
     {
         c->rpos = 0;
+        c->fpos = -1;
         c = c->next;
     }
 }

@@ -1,3 +1,9 @@
+2005-10-28  Timo Savinen <tjsa@iki.fi>
+
+    * Version 0.1.6
+    * bug in s-command fixed, endless loop in some cases
+    * bbe.html is now installed to /usr/local/share/doc/bbe
+
 2005-10-23  Timo Savinen <tjsa@iki.fi>
 
     * Version 0.1.5

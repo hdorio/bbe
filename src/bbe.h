@@ -20,7 +20,7 @@
  *
  */
 
-/* $Id: bbe.h,v 1.26 2005/10/19 18:39:13 timo Exp $ */
+/* $Id: bbe.h,v 1.27 2005/10/27 16:37:14 timo Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -109,6 +109,7 @@ struct command_list {
     unsigned char *s2;      // replace for s and dest for y 
     off_t s2_len;
     int rpos;               // replace position for s,r and y
+    off_t fpos;             // found pos for s-command
     FILE *fd;               // stream for w command
     struct command_list *next;
 };
