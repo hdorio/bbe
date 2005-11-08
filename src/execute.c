@@ -20,7 +20,7 @@
  *
  */
 
-/* $Id: execute.c,v 1.32 2005/10/27 16:37:14 timo Exp $ */
+/* $Id: execute.c,v 1.33 2005/11/01 19:01:16 timo Exp $ */
 
 #include "bbe.h"
 #include <stdlib.h>
@@ -96,7 +96,7 @@ byte_to_string(unsigned char byte,char format)
 char *
 off_t_to_string(off_t number,char format)
 {
-    static char string[16];
+    static char string[128];
 
     switch(format)
     {
@@ -142,7 +142,13 @@ execute_commands(struct command_list *c)
                 {
                     if(c->rpos < c->count)
                     {
-                        delete_this_byte = 1;
+                        if(inserting)
+                        {
+                            inserting = 0;
+                        } else
+                        {
+                             delete_this_byte = 1;
+                        }
                         c->rpos++;
                     } else
                     {
@@ -165,7 +171,13 @@ execute_commands(struct command_list *c)
                     if(c->rpos <= c->s1_len)
                     {
                         put_byte(c->s1[c->rpos - 1]);
-                        if(c->rpos < c->s1_len) inserting = 1;
+                        if(delete_this_byte)
+                        {
+                            delete_this_byte = 0;
+                        } else 
+                        {
+                            if(c->rpos < c->s1_len) inserting = 1;
+                        }
                     }
                     c->rpos++;
                 }
@@ -185,7 +197,13 @@ execute_commands(struct command_list *c)
                         put_byte(c->s2[c->rpos]);
                     } else if (c->rpos < c->s1_len && c->rpos >= c->s2_len)
                     {
-                        delete_this_byte = 1;
+                        if(inserting)
+                        {
+                            inserting = 0;
+                        } else
+                        {
+                            delete_this_byte = 1;
+                        }
                     } else if(c->rpos >= c->s1_len && c->rpos < c->s2_len)
                     {
                         put_byte(c->s2[c->rpos]);
@@ -193,7 +211,13 @@ execute_commands(struct command_list *c)
 
                         if(c->rpos >= c->s1_len - 1 && c->rpos < c->s2_len - 1)
                         {
-                            inserting = 1;
+                            if(delete_this_byte)
+                            {
+                                delete_this_byte = 0;
+                            } else
+                            {
+                                inserting = 1;
+                            }
                         }
 
                         c->rpos++;
@@ -221,10 +245,22 @@ execute_commands(struct command_list *c)
                     if(c->s2_len) 
                     {
                         put_byte(c->s2[0]);
-                        if(c->s1_len == 1 && c->s2_len > 1) inserting = 1;
+                        if(delete_this_byte)
+                        {
+                            delete_this_byte = 0;
+                        } else
+                        {
+                            if(c->s1_len == 1 && c->s2_len > 1) inserting = 1;
+                        }
                     } else
                     {
-                        delete_this_byte = 1;
+                        if(inserting)
+                        {
+                            inserting = 0;
+                        } else
+                        {
+                            delete_this_byte = 1;
+                        }
                     }
                 }
                 break;

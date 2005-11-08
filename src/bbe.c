@@ -20,7 +20,7 @@
  *
  */
 
-/* $Id: bbe.c,v 1.39 2005/10/20 08:02:56 timo Exp $ */
+/* $Id: bbe.c,v 1.40 2005/11/01 19:01:16 timo Exp $ */
 
 #include "bbe.h"
 #ifdef HAVE_GETOPT_H
@@ -43,7 +43,7 @@ static char *program = "bbe";
 #ifdef VERSION
 static char *version = VERSION;
 #else
-static char *version = "0.1.3";
+static char *version = "0.1.7";
 #endif
 
 #ifdef PACKAGE_BUGREPORT

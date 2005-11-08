@@ -1,3 +1,8 @@
+2005-11-08  Timo Savinen <tjsa@iki.fi>
+
+    * Version 0.1.7
+    * More sane results when byte ranges of d and i commands overlap
+
 2005-10-28  Timo Savinen <tjsa@iki.fi>
 
     * Version 0.1.6
