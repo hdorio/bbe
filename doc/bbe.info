@@ -1,6 +1,6 @@
 This is bbe.info, produced by makeinfo version 4.7 from bbe.texi.
 
-   This file documents the `bbe' - binary block editor
+   This file documents version 0.1.8 of `bbe', a binary block editor.
 
    Copyright (C) 2005 Timo Savinen
 
@@ -23,7 +23,7 @@ File: bbe.info,  Node: Top,  Next: Overview,  Prev: (dir),  Up: (dir)
 bbe
 ***
 
-This file documents the `bbe' - binary block editor
+This file documents version 0.1.8 of `bbe', a binary block editor.
 
    Copyright (C) 2005 Timo Savinen
 
@@ -302,7 +302,13 @@ Block commands are:
 `B F'
      Before block contents the current block number and colon is
      printed in format specified by F.  Block numbering starts at one.
-     F can have one of the sames codes as `F'-command
+     F can have one of the sames codes as `F'-command.
+
+`> `file''
+     Before printing a block, the contents of file `file' is printed.
+
+`< `file''
+     After printing a block, the contents of file `file' is printed.
 
 Byte commands are:
 ------------------
@@ -334,6 +340,13 @@ block, first byte is number zero.
 `l N'
      Commands appearing after `l'-command have no effect concerning
      bytes starting from the byte number N of the block.
+
+`u N C'
+     All bytes from start of the block to offset N are replaced by C.
+
+`f N C'
+     All bytes starting from offset N to the end of the block are
+     replaced by C.
 
 `p FORMAT'
      Contents of block is printed in formats specified by FORMAT.
@@ -367,9 +380,9 @@ block, first byte is number zero.
 
 `w `file''
      Contents of blocks are written to file `file'. *Note*: Data
-     inserted by commands `A' and `I' are written to file `file' and
-     `j' and `l' commands have no effect on `w'-commands. Zero size
-     files are not preserved.
+     inserted by commands `A', `I', `>' and `<' are written to file
+     `file' and `j' and `l' commands have no effect on `w'-commands.
+     Zero size files are not preserved.
      Filename can contain format string `%B' or `%nB', these format
      strings are replace by current block number (starting from one),
      causing every block to have it's own file.  In `%nB', the `n' is
@@ -381,13 +394,13 @@ block, first byte is number zero.
      SOURCE and DEST must have equal length.  Separator `/' can be
      replaced by any character not present in SOURCE or DEST.
 
-`& c'
+`& C'
      Performs binary and with C on block contents.
 
-`| c'
+`| C'
      Performs binary or with C on block contents.
 
-`^ c'
+`^ C'
      Performs exclusive or with C on block contents.
 
 `~'
@@ -407,9 +420,6 @@ GB), other systems are  not tested.
 _Strings in block definition_
 _Search string in `s' command_
      are limited to _16384_ bytes.
-_Total data to be inserted by `s' and `i' commands_
-     is _245760_ bytes, that means the total data in command
-     definitions, of course it can be inserted several times.
 
 
 File: bbe.info,  Node: bbe programs,  Next: Problems,  Prev: Invoking bbe,  Up: Top
@@ -432,7 +442,7 @@ Basic execution cycle:
      executed.
 
   2. Block commands affecting the start of the block (`I', `D', `J',
-     `N', `F' and `B') are executed.
+     `N', `F', `>' and `B') are executed.
 
   3. The block is scanned byte by byte and all byte commands (lower
      case letters) are executed.  *Note*: Commands are executed on
@@ -440,7 +450,7 @@ Basic execution cycle:
      is deleted, the following  commands don't 'see' the removed byte.
 
   4. When end of the block is reached the end of the block commands
-     (`A') are executed.
+     (`A' and `<') are executed.
 
   5. Next block is searched, data between the blocks, if not suppressed
      with `-s', is written to output stream.
@@ -510,6 +520,11 @@ Few examples:
      that the jpg start/stop sequences does not appear in other context
      than jpg-images).  Files will be named as `pic01.jpg',
      `pic02.jpg', `pic03.jpg',...
+`bbe -b "_<body>_:_</body>_" -s -o temp nicebody.html'
+`bbe -b "_<body>_:_</body>_" -e "D;< temp" -o tmpindex.html index.html'
+`mv tmpindex.html index.html'
+     The body part of the html-document `index.html' is replaced by the
+     body of the document `nicebody.html'.
 
 
 File: bbe.info,  Node: Problems,  Prev: bbe programs,  Up: Top
@@ -530,15 +545,15 @@ problems.
 
 
 Tag Table:
-Node: Top766
-Node: Overview1811
-Node: Samples2298
-Node: Invoking bbe3696
-Node: Invocation4230
-Node: Block5242
-Node: Commands7288
-Node: Limits11616
-Node: bbe programs12169
-Node: Problems16270
+Node: Top781
+Node: Overview1841
+Node: Samples2328
+Node: Invoking bbe3726
+Node: Invocation4260
+Node: Block5272
+Node: Commands7318
+Node: Limits11994
+Node: bbe programs12372
+Node: Problems16758
 
 End Tag Table

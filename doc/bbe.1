@@ -25,7 +25,7 @@
 .\" .br        insert line break
 .\" .sp <n>    insert n+1 empty lines
 .\" for manpage-specific macros, see man(7)
-.TH "BBE" "1" "2005-10-20" "" ""
+.TH "BBE" "1" "2005-11-13" "" ""
 .SH "NAME"
 bbe \- binary block editor
 .SH "SYNOPSIS"
@@ -127,6 +127,12 @@ Before printing a block, the input stream offset at the begining of the block is
 B \fIf\fR
 Before printing a block, the block number is printed (first block == 1)
 \fIf\fR can be H, D or O for Hexadecimal, Decimal or Octal format of block number.
+.TP 
+> \fIfile\fR
+Before printing a block, the contents of file \fIfile\fR is printed.
+.TP 
+< \fIfile\fR
+After printing a block, the contents of file \fIfile\fR is printed.
 .LP 
 \fBByte commands\fR
 .TP 
@@ -170,21 +176,27 @@ w \fIfile\fR
 Write bytes from the current block to file \fIfile\fR. Commands before w\-command have effect to what will be written. %B or %nB in  \fIfile\fR will be replaced by current block number. n in %nB is field length,
 leading zero in n causes the block number to be left padded with zeroes.
 .TP 
-& \fIbyte\fR
-Performs binary and with \fIbyte\fR.
+& \fIc\fR
+Performs binary and with \fIc\fR.
 .TP 
-| \fIbyte\fR
-Performs binary or with \fIbyte\fR.
+| \fIc\fR
+Performs binary or with \fIc\fR.
 .TP 
-^ \fIbyte\fR
-Performs binary xor with \fIbyte\fR.
+^ \fIc\fR
+Performs binary xor with \fIc\fR.
 .TP 
 ~
 Performs binary negation.
+.TP 
+u \fIn\fR \fIc\fR
+All bytes from start of the block to offset \fIn\fR are replaced by \fIc\fR.
+.TP 
+f \fIn\fR \fIc\fR
+All bytes starting from offset \fIn\fR to end of the block are replaced by \fIc\fR.
 .LP 
 Nonvisible characters in strings can be escaped same way as in block definition strings. Character '/' in s and y commands can be any visible character.
 .LP 
-Note that the D, A, I, F, B, c, s, i, y, p and d commands cause the length of input and output streams to be different.
+Note that the D, A, I, F, B, c, s, i, y, p, <, > and d commands cause the length of input and output streams to be different.
 
 .SH "EXAMPLES"
 .TP 
@@ -203,4 +215,4 @@ Blocks between strings "\\x2f\\x34\\x6a" and "\\xff\\xff" are written to file /t
 .BR sed (1).
 
 .SH "AUTHOR"
-Timo Savinen <tjsa@iki.fi>.
+Timo Savinen <tjsa@iki.fi >

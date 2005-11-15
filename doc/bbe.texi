@@ -6,10 +6,10 @@
 @finalout
 @c %**end of header
 
-@set VERSION 0.1.7
+@set VERSION 0.1.8
 
 @copying
-This file documents the @command{bbe} - binary block editor
+This file documents version @value{VERSION} of @command{bbe}, a binary block editor. 
 
 Copyright @copyright{} 2005 Timo Savinen
 
@@ -308,7 +308,13 @@ Octal.
 
 @item B @var{f}
 Before block contents the current block number and colon is printed in format specified by @var{f}. 
-Block numbering starts at one. @var{f} can have one of the sames codes as @code{F}-command
+Block numbering starts at one. @var{f} can have one of the sames codes as @code{F}-command.
+
+@item > @file{file}
+Before printing a block, the contents of file @file{file} is printed.
+
+@item < @file{file}
+After printing a block, the contents of file @file{file} is printed.
 @end table
 
 @subheading Byte commands are:
@@ -340,6 +346,12 @@ Commands appearing after @code{j}-command have no effect concerning bytes 0-@var
 @item l @var{n}
 Commands appearing after @code{l}-command have no effect concerning bytes starting from the byte number @var{n} of the block.
 
+@item u @var{n} @var{c}
+All bytes from start of the block to offset @var{n} are replaced by @var{c}.
+
+@item f @var{n} @var{c}
+All bytes starting from offset @var{n} to the end of the block are replaced by @var{c}.
+
 @item p @var{format}
 Contents of block is printed in formats specified by @var{format}. @var{format} can contain following format codes:
 @table @var
@@ -369,7 +381,8 @@ All occurences of @var{search} are replaced by @var{replace}. @var{replace} can 
 character not present in @var{search} or @var{replace}.
 
 @item w @file{file}
-Contents of blocks are written to file @file{file}. @strong{Note}: Data inserted by commands @code{A} and @code{I} 
+Contents of blocks are written to file @file{file}. @strong{Note}: Data inserted by commands @code{A}, @code{I}, 
+@code{>} and @code{<}
 are written to file @file{file} and @code{j} and @code{l} commands have no effect on @code{w}-commands. Zero size files are not preserved.@*
 Filename can contain format string @code{%B} or @code{%nB}, these format strings are replace by current block number (starting from one), causing every block to have it's own file. 
 In @code{%nB}, the @code{n} is field width in range 0-99. If @code{n} has a leading zero, then the block numbers will be left padded with zeroes.
@@ -379,13 +392,13 @@ In @code{%nB}, the @code{n} is field width in range 0-99. If @code{n} has a lead
 Translate bytes in @var{source} to the corresponding bytes in @var{dest}. @var{source} and @var{dest} must have equal length.
 Separator @code{/} can be replaced by any character not present in @var{source} or @var{dest}.
 
-@item & c
+@item & @var{c}
 Performs binary and with @var{c} on block contents.
 
-@item | c
+@item | @var{c}
 Performs binary or with @var{c} on block contents.
 
-@item ^ c
+@item ^ @var{c}
 Performs exclusive or with @var{c} on block contents.
 
 @item ~
@@ -406,11 +419,6 @@ There are however, some limitations in block and command definitions:
 @item Strings in block definition
 @itemx Search string in @code{s} command
 are limited to @emph{16384} bytes.
-@*
-
-@item Total data to be inserted by @code{s} and @code{i} commands
-is @emph{245760} bytes, that means the total data in command definitions, of course it can be inserted several times.
-@*
 @end table
 
 
@@ -429,7 +437,7 @@ Start of the block is searched. If found, data before block is written to output
 step 2 is executed.
 
 @item
-Block commands affecting the start of the block (@code{I}, @code{D}, @code{J}, @code{N}, @code{F} and @code{B}) are executed.
+Block commands affecting the start of the block (@code{I}, @code{D}, @code{J}, @code{N}, @code{F}, @code{>} and @code{B}) are executed.
 
 @item
 The block is scanned byte by byte and all byte commands (lower case letters) are executed. 
@@ -437,7 +445,7 @@ The block is scanned byte by byte and all byte commands (lower case letters) are
 the following  commands don't 'see' the removed byte.
 
 @item
-When end of the block is reached the end of the block commands (@code{A}) are executed.
+When end of the block is reached the end of the block commands (@code{A} and @code{<}) are executed.
 
 @item 
 Next block is searched, data between the blocks, if not suppressed with @option{-s}, is written to output stream.
@@ -525,7 +533,12 @@ The least significant nybble of bytes after @code{x5f} is cleared.@*
 @item bbe -b "/\xff\xd8\xff/:/\xff\xd9/" -s -e "w pic%02B.jpg" -o /dev/null manual.pdf
 Extract jpg-images from pdf-file to separate jpg-files (assuming that the jpg start/stop sequences
 does not appear in other context than jpg-images). 
-Files will be named as @file{pic01.jpg}, @file{pic02.jpg}, @file{pic03.jpg},@dots{}
+Files will be named as @file{pic01.jpg}, @file{pic02.jpg}, @file{pic03.jpg},@dots{} @*
+
+@item bbe -b "_<body>_:_</body>_" -s -o temp nicebody.html
+@itemx bbe -b "_<body>_:_</body>_" -e "D;< temp" -o tmpindex.html index.html
+@itemx mv tmpindex.html index.html
+The body part of the html-document @file{index.html} is replaced by the body of the document @file{nicebody.html}.
 @end table
 
 

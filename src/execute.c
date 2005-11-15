@@ -20,7 +20,7 @@
  *
  */
 
-/* $Id: execute.c,v 1.33 2005/11/01 19:01:16 timo Exp $ */
+/* $Id: execute.c,v 1.37 2005/11/15 13:59:15 timo Exp $ */
 
 #include "bbe.h"
 #include <stdlib.h>
@@ -118,6 +118,7 @@ off_t_to_string(off_t number,char format)
 
 
 
+#define IO_BLOCK_SIZE (8 * 1024)
 
 /* execute given commands */
 void
@@ -127,8 +128,11 @@ execute_commands(struct command_list *c)
     unsigned char a,b;
     unsigned char *p;
     char *str;
+    off_t read_count;
+    static unsigned char ioblock[IO_BLOCK_SIZE];
 
     if(skip_this_block) return;
+
     while(c != NULL)
     {
         switch(c->letter)
@@ -411,6 +415,27 @@ execute_commands(struct command_list *c)
             case '~':
                 put_byte(~*out_buffer.write_pos);
                 break;
+            case '<':
+            case '>':
+                if (fseeko(c->fd,0,SEEK_SET)) panic("Cannot seek file",c->s1,strerror(errno));
+                do
+                {
+                    read_count = fread(ioblock,1,IO_BLOCK_SIZE,c->fd);
+                    write_buffer(ioblock,read_count);
+                } while(read_count);
+                break;
+            case 'u':
+                if(in_buffer.block_offset <= c->offset)
+                {
+                    put_byte(c->s1[0]);
+                }
+                break;
+            case 'f':
+                if(in_buffer.block_offset >= c->offset)
+                {
+                    put_byte(c->s1[0]);
+                }
+                break;
             case 'w':
                 break;
         }
@@ -563,6 +588,35 @@ init_commands(struct commands *commands)
         }
         c = c->next;
     }
+
+    c = commands->block_start;
+
+    while(c != NULL)
+    {
+        switch(c->letter)
+        {
+            case '>':
+                c->fd = fopen(c->s1,"r");
+                if(c->fd == NULL) panic("Cannot open file for reading",c->s1,strerror(errno));
+                break;
+        }
+        c = c->next;
+    }
+
+    c = commands->block_end;
+
+    while(c != NULL)
+    {
+        switch(c->letter)
+        {
+            case '<':
+                c->fd = fopen(c->s1,"r");
+                if(c->fd == NULL) panic("Cannot open file for reading",c->s1,strerror(errno));
+                break;
+        }
+        c = c->next;
+    }
+    
 }
 
 
@@ -587,6 +641,32 @@ close_commands(struct commands *commands)
                         unlink(c->s2);
                     }
                 }
+                break;
+        }
+        c = c->next;
+    }
+
+    c = commands->block_start;
+
+    while(c != NULL)
+    {
+        switch(c->letter)
+        {
+            case '>':
+                fclose(c->fd);
+                break;
+        }
+        c = c->next;
+    }
+
+    c = commands->block_end;
+
+    while(c != NULL)
+    {
+        switch(c->letter)
+        {
+            case '<':
+                fclose(c->fd);
                 break;
         }
         c = c->next;
@@ -625,7 +705,6 @@ execute_program(struct commands *commands)
         execute_commands(commands->block_start);
         do
         {
-            set_cycle_start();
             delete_this_byte = 0;
             inserting = 0;
             block_end = last_byte();

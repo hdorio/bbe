@@ -7,7 +7,7 @@
 <link title="Top" rel="top" href="#Top">
 <link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
 <!--
-This file documents the `bbe' - binary block editor
+This file documents version 0.1.8 of `bbe', a binary block editor.
 
 Copyright (C) 2005 Timo Savinen
 
@@ -48,7 +48,7 @@ Up:&nbsp;<a rel="up" accesskey="u" href="#dir">(dir)</a>
 
 <h2 class="unnumbered">bbe</h2>
 
-<p>This file documents the <span class="command">bbe</span> - binary block editor
+<p>This file documents version 0.1.8 of <span class="command">bbe</span>, a binary block editor.
 
    <p>Copyright &copy; 2005 Timo Savinen
 
@@ -306,7 +306,11 @@ Stream offset starts at zero. <var>f</var> can have one of following values:
 </dl>
 
      <br><dt><code>B </code><var>f</var><dd>Before block contents the current block number and colon is printed in format specified by <var>f</var>. 
-Block numbering starts at one. <var>f</var> can have one of the sames codes as <code>F</code>-command
+Block numbering starts at one. <var>f</var> can have one of the sames codes as <code>F</code>-command.
+
+     <br><dt><code>&gt; </code><span class="file">file</span><dd>Before printing a block, the contents of file <span class="file">file</span> is printed.
+
+     <br><dt><code>&lt; </code><span class="file">file</span><dd>After printing a block, the contents of file <span class="file">file</span> is printed. 
 </dl>
 
 <h4 class="subheading">Byte commands are:</h4>
@@ -331,6 +335,10 @@ in range <code>'0'</code> &ndash; <code>'9'</code> are not converted.
 
      <br><dt><code>l </code><var>n</var><dd>Commands appearing after <code>l</code>-command have no effect concerning bytes starting from the byte number <var>n</var> of the block.
 
+     <br><dt><code>u </code><var>n</var> <var>c</var><dd>All bytes from start of the block to offset <var>n</var> are replaced by <var>c</var>.
+
+     <br><dt><code>f </code><var>n</var> <var>c</var><dd>All bytes starting from offset <var>n</var> to the end of the block are replaced by <var>c</var>.
+
      <br><dt><code>p </code><var>format</var><dd>Contents of block is printed in formats specified by <var>format</var>. <var>format</var> can contain following format codes:
           <dl>
 <dt><var>H</var><dd>Hexadecimal.
@@ -351,7 +359,8 @@ in range <code>'0'</code> &ndash; <code>'9'</code> are not converted.
      <br><dt><code>s/</code><var>search</var><code>/</code><var>replace</var><code>/</code><dd>All occurences of <var>search</var> are replaced by <var>replace</var>. <var>replace</var> can be empty. Separator <code>/</code> can be replaced by any
 character not present in <var>search</var> or <var>replace</var>.
 
-     <br><dt><code>w </code><span class="file">file</span><dd>Contents of blocks are written to file <span class="file">file</span>. <strong>Note</strong>: Data inserted by commands <code>A</code> and <code>I</code>
+     <br><dt><code>w </code><span class="file">file</span><dd>Contents of blocks are written to file <span class="file">file</span>. <strong>Note</strong>: Data inserted by commands <code>A</code>, <code>I</code>,
+<code>&gt;</code> and <code>&lt;</code>
 are written to file <span class="file">file</span> and <code>j</code> and <code>l</code> commands have no effect on <code>w</code>-commands. Zero size files are not preserved.<br>
 Filename can contain format string <code>%B</code> or <code>%nB</code>, these format strings are replace by current block number (starting from one), causing every block to have it's own file. 
 In <code>%nB</code>, the <code>n</code> is field width in range 0-99. If <code>n</code> has a leading zero, then the block numbers will be left padded with zeroes.
@@ -359,11 +368,11 @@ In <code>%nB</code>, the <code>n</code> is field width in range 0-99. If <code>n
      <br><dt><code>y/</code><var>source</var><code>/</code><var>dest</var><code>/</code><dd>Translate bytes in <var>source</var> to the corresponding bytes in <var>dest</var>. <var>source</var> and <var>dest</var> must have equal length. 
 Separator <code>/</code> can be replaced by any character not present in <var>source</var> or <var>dest</var>.
 
-     <br><dt><code>&amp; c</code><dd>Performs binary and with <var>c</var> on block contents.
+     <br><dt><code>&amp; </code><var>c</var><dd>Performs binary and with <var>c</var> on block contents.
 
-     <br><dt><code>| c</code><dd>Performs binary or with <var>c</var> on block contents.
+     <br><dt><code>| </code><var>c</var><dd>Performs binary or with <var>c</var> on block contents.
 
-     <br><dt><code>^ c</code><dd>Performs exclusive or with <var>c</var> on block contents.
+     <br><dt><code>^ </code><var>c</var><dd>Performs exclusive or with <var>c</var> on block contents.
 
      <br><dt><code>~</code><dd>Performs binary negation on block contents. 
 </dl>
@@ -385,10 +394,6 @@ systems are  not tested.
 
      <dl>
 <dt><em>Strings in block definition</em><dt><em>Search string in </em><code>s</code><em> command</em><dd>are limited to <em>16384</em> bytes. 
-<br>
-
-     <br><dt><em>Total data to be inserted by </em><code>s</code><em> and </em><code>i</code><em> commands</em><dd>is <em>245760</em> bytes, that means the total data in command definitions, of course it can be inserted several times. 
-<br>
 </dl>
 
 <div class="node">
@@ -411,13 +416,13 @@ and if the end of input stream is found before 128'th byte of the last block is 
 <li>Start of the block is searched. If found, data before block is written to output stream (unless <span class="option">-s</span> is defined) and
 step 2 is executed.
 
-     <li>Block commands affecting the start of the block (<code>I</code>, <code>D</code>, <code>J</code>, <code>N</code>, <code>F</code> and <code>B</code>) are executed.
+     <li>Block commands affecting the start of the block (<code>I</code>, <code>D</code>, <code>J</code>, <code>N</code>, <code>F</code>, <code>&gt;</code> and <code>B</code>) are executed.
 
      <li>The block is scanned byte by byte and all byte commands (lower case letters) are executed. 
 <strong>Note</strong>: Commands are executed on results of previous commands, if e.g. the first byte of the block is deleted,
 the following  commands don't 'see' the removed byte.
 
-     <li>When end of the block is reached the end of the block commands (<code>A</code>) are executed.
+     <li>When end of the block is reached the end of the block commands (<code>A</code> and <code>&lt;</code>) are executed.
 
      <li>Next block is searched, data between the blocks, if not suppressed with <span class="option">-s</span>, is written to output stream.
      </ol>
@@ -486,7 +491,9 @@ The start sequence is not printed.<br>
 
      <br><dt><span class="samp">bbe -b "/\xff\xd8\xff/:/\xff\xd9/" -s -e "w pic%02B.jpg" -o /dev/null manual.pdf</span><dd>Extract jpg-images from pdf-file to separate jpg-files (assuming that the jpg start/stop sequences
 does not appear in other context than jpg-images). 
-Files will be named as <span class="file">pic01.jpg</span>, <span class="file">pic02.jpg</span>, <span class="file">pic03.jpg</span>,<small class="dots">...</small>
+Files will be named as <span class="file">pic01.jpg</span>, <span class="file">pic02.jpg</span>, <span class="file">pic03.jpg</span>,<small class="dots">...</small> <br>
+
+     <br><dt><span class="samp">bbe -b "_&lt;body&gt;_:_&lt;/body&gt;_" -s -o temp nicebody.html</span><dt><span class="samp">bbe -b "_&lt;body&gt;_:_&lt;/body&gt;_" -e "D;&lt; temp" -o tmpindex.html index.html</span><dt><span class="samp">mv tmpindex.html index.html</span><dd>The body part of the html-document <span class="file">index.html</span> is replaced by the body of the document <span class="file">nicebody.html</span>. 
 </dl>
 
 <div class="node">

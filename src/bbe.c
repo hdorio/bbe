@@ -20,7 +20,7 @@
  *
  */
 
-/* $Id: bbe.c,v 1.40 2005/11/01 19:01:16 timo Exp $ */
+/* $Id: bbe.c,v 1.42 2005/11/15 13:59:15 timo Exp $ */
 
 #include "bbe.h"
 #ifdef HAVE_GETOPT_H
@@ -72,13 +72,13 @@ char *convert_strings[] = {
           "",
 };
 /* commands to be executed at start of buffer */
-#define BLOCK_START_COMMANDS "DIJLFBN"
+#define BLOCK_START_COMMANDS "DIJLFBN>"
 
 /* commands to be executed for each byte  */
-#define BYTE_COMMANDS "acdirsywjpl&|^~"
+#define BYTE_COMMANDS "acdirsywjpl&|^~uf"
 
 /* commands to be executed at end of buffer  */
-#define BLOCK_END_COMMANDS "A"
+#define BLOCK_END_COMMANDS "A<"
 
 /* format types for p command */
 char *p_formats="DOHAB";
@@ -149,7 +149,7 @@ parse_long(char *long_int)
                 if(!isdigit(*scan)) panic("Error in number",long_int,NULL);
                 break;
             case 'o':
-                if(!isdigit(*scan) || *scan > '8') panic("Error in number",long_int,NULL);
+                if(!isdigit(*scan) || *scan >= '8') panic("Error in number",long_int,NULL);
                 break;
             case 'x':
                 if(!isxdigit(*scan)) panic("Error in number",long_int,NULL);
@@ -226,7 +226,7 @@ parse_string(char *string,off_t *length)
                         min_len=3;
                         break;
                     case '0':
-                        while(isdigit(*p) && *p <= '8' && j < 4) num[j++] = *p++;
+                        while(isdigit(*p) && *p < '8' && j < 4) num[j++] = *p++;
                         min_len=1;
                         break;
                     default:
@@ -301,7 +301,7 @@ parse_block(char *bs)
                     while(isxdigit(*p)) buf[i++] = *p++;
                     break;
                 case '0':
-                    while(isdigit(*p) && *p <= '8') buf[i++] = *p++;
+                    while(isdigit(*p) && *p < '8') buf[i++] = *p++;
                     break;
                 default:
                     while(isdigit(*p)) buf[i++] = *p++;
@@ -348,7 +348,7 @@ parse_block(char *bs)
                     while(isxdigit(*p)) buf[i++] = *p++;
                     break;
                 case '0':
-                    while(isdigit(*p) && *p <= '8') buf[i++] = *p++;
+                    while(isdigit(*p) && *p < '8') buf[i++] = *p++;
                     break;
                 default:
                     while(isdigit(*p)) buf[i++] = *p++;
@@ -466,6 +466,8 @@ parse_command(char *command_string)
             new->s1 = parse_string(token[1],&new->s1_len);
             break;
         case 'w':
+        case '<':
+        case '>':
             if(i != 2 || strlen(token[0]) > 1) panic("Error in command",command_string,NULL);
             new->s1 = xstrdup(token[1]);
             break;
@@ -567,6 +569,13 @@ parse_command(char *command_string)
             break;
         case '~':
             if(i != 1 || strlen(token[0]) > 1) panic("Error in command",command_string,NULL);
+            break;
+        case 'u':
+        case 'f':
+            if(i != 3 || strlen(token[0]) > 1) panic("Error in command",command_string,NULL);
+            new->offset = parse_long(token[1]);
+            new->s1 = parse_string(token[2],&new->s1_len);
+            if(new->s1_len != 1)  panic("Error in command",command_string,NULL);
             break;
         default:
             panic("Unknown command",command_string,NULL);

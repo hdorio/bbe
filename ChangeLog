@@ -1,3 +1,9 @@
+2005-11-15  Timo Savinen <tjsa@iki.fi>
+
+    * Version 0.1.8
+    * block commands < and > added
+    * block initialize commands u and f added
+
 2005-11-08  Timo Savinen <tjsa@iki.fi>
 
     * Version 0.1.7

@@ -20,7 +20,7 @@
  *
  */
 
-/* $Id: buffer.c,v 1.33 2005/10/19 18:39:13 timo Exp $ */
+/* $Id: buffer.c,v 1.35 2005/11/14 10:40:47 timo Exp $ */
 
 #include "bbe.h"
 #include <stdlib.h>
@@ -465,20 +465,13 @@ write_string(char *string)
 void
 write_buffer(unsigned char *buf,off_t length)
 {
-    unsigned char *save_pos;
 
     if(!length) return;
 
-    if(length > (off_t) (OUTPUT_BUFFER_SIZE - (out_buffer.write_pos - out_buffer.buffer)))
+    if(out_buffer.write_pos + length >= out_buffer.end)
     {
-        save_pos = out_buffer.cycle_start < out_buffer.low_pos ? out_buffer.cycle_start : out_buffer.low_pos;
-        if(save_pos == out_buffer.buffer) 
-            panic("Write buffer too small",NULL,NULL);
-        write_output_stream(out_buffer.buffer,save_pos - out_buffer.buffer);
-        write_w_command(out_buffer.buffer,save_pos - out_buffer.buffer);
-        memmove(out_buffer.buffer,save_pos,out_buffer.write_pos - save_pos);
-        out_buffer.write_pos = out_buffer.buffer + (out_buffer.write_pos - save_pos);
-        out_buffer.cycle_start = out_buffer.buffer + (out_buffer.cycle_start - save_pos);
+        if(out_buffer.write_pos == out_buffer.buffer) panic("Out buffer too small, should not happen!",NULL,NULL);
+        flush_buffer();
     }
     memcpy(out_buffer.write_pos,buf,length);
     out_buffer.write_pos += length;
@@ -497,37 +490,12 @@ put_byte(unsigned char byte)
 inline void
 write_next_byte()
 {
-    unsigned char *save_pos;
-
     out_buffer.write_pos++;
     out_buffer.block_offset++;
-    if(out_buffer.write_pos > out_buffer.end)
+    if(out_buffer.write_pos >= out_buffer.end)
     {
-        save_pos = out_buffer.cycle_start < out_buffer.low_pos ? out_buffer.cycle_start : out_buffer.low_pos;
-        if(save_pos == out_buffer.buffer) 
-            panic("Write buffer too small",NULL,NULL);
-        write_output_stream(out_buffer.buffer,save_pos - out_buffer.buffer);
-        write_w_command(out_buffer.buffer,save_pos - out_buffer.buffer);
-        memmove(out_buffer.buffer,save_pos,out_buffer.write_pos - save_pos);
-        out_buffer.write_pos = out_buffer.buffer + (out_buffer.write_pos - save_pos);
-        out_buffer.cycle_start = out_buffer.buffer + (out_buffer.cycle_start - save_pos);
+        flush_buffer();
     }
-}
-
-/* reverse_bytes, reverse the write position (for replace etc.) */
-inline void
-reverse_bytes(size_t count)
-{
-    out_buffer.write_pos -= count;
-    out_buffer.block_offset -= count;
-    if(out_buffer.write_pos < out_buffer.buffer) panic("Too many bytes reversed, should not happen",NULL,NULL);
-}
-
-/* set editing cycle start position */
-inline void
-set_cycle_start()
-{
-    out_buffer.cycle_start = out_buffer.write_pos;
 }
 
 /* write unwritten data from buffer to disk */

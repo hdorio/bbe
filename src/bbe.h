@@ -20,7 +20,7 @@
  *
  */
 
-/* $Id: bbe.h,v 1.27 2005/10/27 16:37:14 timo Exp $ */
+/* $Id: bbe.h,v 1.28 2005/11/11 13:06:53 timo Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -146,8 +146,6 @@ struct output_buffer {
     unsigned char *end;
     unsigned char *write_pos;    // current write psotion;
     unsigned char *low_pos;      // low water mark
-    unsigned char *cycle_start;  // at this position started the last command cycle 
-                                 //  (written bytes n curren cycle are between cycle_start and write_pos
     off_t block_offset;          // block offset (start = 0) number of bytes written at position write_pos
 };
     
@@ -202,9 +200,6 @@ init_commands(struct commands *c);
 extern void
 close_commands(struct commands *c);
 
-extern inline void
-set_cycle_start();
-
 extern void
 close_output_stream();
 
@@ -213,9 +208,6 @@ write_w_command(unsigned char *buf,size_t length);
 
 extern void
 execute_program(struct commands *c);
-
-extern void
-reverse_bytes(size_t count);
 
 extern void
 write_string(char *string);
