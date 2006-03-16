@@ -20,7 +20,7 @@
  *
  */
 
-/* $Id: execute.c,v 1.37 2005/11/15 13:59:15 timo Exp $ */
+/* $Id: execute.c,v 1.38 2006-03-12 10:05:33 timo Exp $ */
 
 #include "bbe.h"
 #include <stdlib.h>
@@ -144,7 +144,7 @@ execute_commands(struct command_list *c)
             case 'd':
                 if(c->rpos || c->offset == in_buffer.block_offset) 
                 {
-                    if(c->rpos < c->count)
+                    if(c->rpos < c->count || c->count == 0)
                     {
                         if(inserting)
                         {

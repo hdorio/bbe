@@ -6,7 +6,7 @@
 @finalout
 @c %**end of header
 
-@set VERSION 0.1.8
+@set VERSION 0.1.9
 
 @copying
 This file documents version @value{VERSION} of @command{bbe}, a binary block editor. 
@@ -139,7 +139,7 @@ Block definition.
 
 @item -e @var{COMMAND}
 @itemx --expression=@var{COMMAND}
-Add command(s) to the commands to be executed. Commands must separated by semicolon.
+Add command(s) to the commands to be executed. Commands must be separated by semicolon.
 
 
 @item -f @var{script-file}
@@ -334,8 +334,9 @@ Binary Coded Decimal
 @strong{Note}: Bytes, that cannot be converted are passed through as they are. e.g. in ASC -> BCD conversion, ASCII characters not 
 in range @code{'0'} -- @code{'9'} are not converted.
 
-@item d @var{n} @var{m} 
-Delete @var{m} bytes starting from the offset  @var{n}.
+@item d @var{n} @var{m}|*
+Delete @var{m} bytes starting from the offset @var{n}. If * is defined instead of @var{m}, then
+all bytes of the block starting from @var{n} are deleted.
 
 @item i @var{n} @var{string}
 Insert @var{string} after byte number @var{n}.

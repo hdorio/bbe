@@ -1,6 +1,6 @@
-This is bbe.info, produced by makeinfo version 4.7 from bbe.texi.
+This is bbe.info, produced by makeinfo version 4.8 from bbe.texi.
 
-   This file documents version 0.1.8 of `bbe', a binary block editor.
+   This file documents version 0.1.9 of `bbe', a binary block editor.
 
    Copyright (C) 2005 Timo Savinen
 
@@ -23,7 +23,7 @@ File: bbe.info,  Node: Top,  Next: Overview,  Prev: (dir),  Up: (dir)
 bbe
 ***
 
-This file documents version 0.1.8 of `bbe', a binary block editor.
+This file documents version 0.1.9 of `bbe', a binary block editor.
 
    Copyright (C) 2005 Timo Savinen
 
@@ -127,7 +127,7 @@ The format for running the `bbe' program is:
 
 `-e COMMAND'
 `--expression=COMMAND'
-     Add command(s) to the commands to be executed. Commands must
+     Add command(s) to the commands to be executed. Commands must be
      separated by semicolon.
 
 `-f SCRIPT-FILE'
@@ -327,8 +327,9 @@ block, first byte is number zero.
      are. e.g. in ASC -> BCD conversion, ASCII characters not in range
      `'0'' - `'9'' are not converted.
 
-`d N M'
-     Delete M bytes starting from the offset  N.
+`d N M|*'
+     Delete M bytes starting from the offset N. If * is defined instead
+     of M, then all bytes of the block starting from N are deleted.
 
 `i N STRING'
      Insert STRING after byte number N.
@@ -550,10 +551,10 @@ Node: Overview1841
 Node: Samples2328
 Node: Invoking bbe3726
 Node: Invocation4260
-Node: Block5272
-Node: Commands7318
-Node: Limits11994
-Node: bbe programs12372
-Node: Problems16758
+Node: Block5275
+Node: Commands7321
+Node: Limits12090
+Node: bbe programs12468
+Node: Problems16854
 
 End Tag Table

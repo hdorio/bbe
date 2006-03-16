@@ -1,3 +1,9 @@
+2006-03-13  Timo Savinen <tjsa@iki.fi>
+
+    * Version 0.1.9
+    * d-command: count can be replaced with *, meaning all bytes in a block.
+    * man page displays correctly in HP-UX
+
 2005-11-15  Timo Savinen <tjsa@iki.fi>
 
     * Version 0.1.8

@@ -20,7 +20,7 @@
  *
  */
 
-/* $Id: bbe.c,v 1.42 2005/11/15 13:59:15 timo Exp $ */
+/* $Id: bbe.c,v 1.43 2006-03-12 10:05:33 timo Exp $ */
 
 #include "bbe.h"
 #ifdef HAVE_GETOPT_H
@@ -490,8 +490,15 @@ parse_command(char *command_string)
         case 'd':
             if(i < 2 || i > 3 || strlen(token[0]) > 1) panic("Error in command",command_string,NULL);
             new->offset = parse_long(token[1]);
-            new->count = 1;
-            if(i == 3) new->count = parse_long(token[2]);
+
+            if(token[2][0] == '*' && !token[2][1])
+            {
+                new->count = 0;
+            } else
+            {
+                new->count = parse_long(token[2]);
+                if(new->count < 1) panic("Error in command",command_string,NULL);
+            }
             break;
         case 'c':
             if(i != 3 || strlen(token[1]) != 3 || strlen(token[2]) != 3 || strlen(token[0]) > 1) panic("Error in command",command_string,NULL);

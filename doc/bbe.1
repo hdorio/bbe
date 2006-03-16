@@ -25,7 +25,7 @@
 .\" .br        insert line break
 .\" .sp <n>    insert n+1 empty lines
 .\" for manpage-specific macros, see man(7)
-.TH "BBE" "1" "2005-11-13" "" ""
+.TH "BBE" "1" "2006-03-14" "" ""
 .SH "NAME"
 bbe \- binary block editor
 .SH "SYNOPSIS"
@@ -58,17 +58,17 @@ List all available options and their meanings.
 .BR  \-V ", " \-\-version
 Show version of program.
 .BR 
-.LP 
-BLOCK can be defined as:
+.PP 
+\fIBLOCK\fP can be defined as:
 .TP 
 N:M
-Where N'th byte starts a M bytes long block (first byte is 0).
+Where \fIN\fR'th byte starts a \fIM\fR bytes long block (first byte is 0).
 .TP 
 :M
-Block length in input stream is M.
+Block length in input stream is \fIM\fR.
 .TP 
 /start/:M
-String \fIstart\fP starts M bytes long block.
+String \fIstart\fP starts \fIM\fR bytes long block.
 .TP 
 /start/:/stop/
 String \fIstart\fP starts the block and block ends to string \fIstop\fR.
@@ -78,29 +78,28 @@ String \fIstart\fR starts the block and block will end at next occurence of \fIs
 .TP 
 :/stop/
 Block starts at the beginning of input stream (or at the end of previous block) and ends at the next occurrence of \fIstop\fR. String \fIstop\fR will be included to the block.
-.P
-Special value '$' of M means the end of stream. 
-.P
+.PP 
+Special value '$' of \fIM\fR means the end of stream. 
+.PP 
 Default value for block is 0:$, meaning the whole input stream.
-.P
+.PP 
 Both \fIstart\fR and \fIstop\fR strings are included to block. Nonprintable characters can be escaped as
-.IP 
-\\nnn
+.TP 
+\ennn
 decimal 
-.IP 
-\\xnn
+.TP 
+\exnn
 hexadecimal
-.IP 
-\\0nnn
+.TP 
+\e0nnn
 octal
-.LP 
-Character '\\' can be escaped as '\\\\'. Escape codes '\\a','\\b','\\t','\\n','\\v','\\f','\\r' and '\\;' can also be used.
-.LP 
-Length (N and M) can be defined as decimal (n), hexadecimal (xn) or octal (0n) value.
+.PP 
+Character '\e' can be escaped as '\e\e'. Escape codes '\ea','\eb','\et','\en','\ev','\ef','\er' and '\e;' can also be used.
+.PP 
+Length (\fIN\fR and \fIM\fR) can be defined as decimal (n), hexadecimal (xn) or octal (0n) value.
 .SH "COMMAND SYNOPSIS"
-bbe has two type of commands: block and byte commands, both are allways related to current block. That means that the input stream outside of block remains untouched. 
-.LP 
-\fBBlock commands\fR
+\fBbbe\fR has two type of commands: block and byte commands, both are allways related to current block. That means that the input stream outside of block remains untouched. 
+.SS Block commands
 .TP 
 D [\fIn\fR]
 Delete the \fIn\fR'th block. Without \fIn\fR, all found blocks are deleted from the output stream.
@@ -133,9 +132,7 @@ Before printing a block, the contents of file \fIfile\fR is printed.
 .TP 
 < \fIfile\fR
 After printing a block, the contents of file \fIfile\fR is printed.
-.LP 
-\fBByte commands\fR
-.TP 
+.SS Byte commands
 \fIn\fR in byte commands is offset from the beginning of current block (starts from zero).
 .TP 
 r \fIn\fR \fIstring\fR
@@ -154,8 +151,8 @@ Replace all occurrences of \fIsearch\fR with \fIreplace\fR.
 y/\fIsource\fR/\fIdest\fR/
 Translate bytes in \fIsource\fR to the corresponding bytes in \fIdest\fR. \fISource\fR and \fIdest\fR must have equal length.
 .TP 
-d \fIn\fR \fIm\fR
-Delete \fIm\fR bytes starting from the offset \fIn\fR.
+d \fIn\fR \fIm\fR|*
+Delete \fIm\fR bytes starting from the offset \fIn\fR. If * is defined instead of \fIm\fR, then all bytes starting from \fIn\fR are deleted.
 .TP 
 c \fIfrom\fR \fIto\fR
 Convert bytes from format \fIfrom\fR to \fIto\fR. Currently supported formats are: 
@@ -193,26 +190,24 @@ All bytes from start of the block to offset \fIn\fR are replaced by \fIc\fR.
 .TP 
 f \fIn\fR \fIc\fR
 All bytes starting from offset \fIn\fR to end of the block are replaced by \fIc\fR.
-.LP 
+.PP 
 Nonvisible characters in strings can be escaped same way as in block definition strings. Character '/' in s and y commands can be any visible character.
-.LP 
+.PP 
 Note that the D, A, I, F, B, c, s, i, y, p, <, > and d commands cause the length of input and output streams to be different.
 
 .SH "EXAMPLES"
 .TP 
-bbe \-e "s/c:\\\\temp\\\\data1.txt/c:\\\\temp\\\\data2.txt/" file1
-all occurences of "c:\\temp\\data1.txt" in file file1 are changed to "c:\\temp\\data2.txt"
+bbe \-e "s/c:\e\etemp\e\edata1.txt/c:\e\etemp\e\edata2.txt/" file1
+all occurences of "c:\etemp\edata1.txt" in file file1 are changed to "c:\etemp\edata2.txt"
 .TP 
-bbe \-b 0420:16 \-e "r 4 \\x12\\x4a" file1
+bbe \-b 0420:16 \-e "r 4 \ex12\ex4a" file1
 Two bytes starting at fifth byte of a 16 byte long block starting at offset 0420 (octal) in file1 are changed to hexadecimal values 12 and 4a.
 .TP 
-bbe \-b :16 \-e "I \\x0a" file1
-New line character is added after every block, block length is 16.
-.TP 
-bbe \-b "/\\x2f\\x34\\x6a/:/\\xff\\xff/" \-e "y/\\x2f\\x34\\x6a\\xff/____/" \-e "w /tmp/data"
-Blocks between strings "\\x2f\\x34\\x6a" and "\\xff\\xff" are written to file /tmp/data. Before writing the block start and end strings are converted to ___ and __.
+bbe \-b :16 \-e "A \ex0a" file1
+Newline is added after every block, block length is 16.
+
 .SH "SEE ALSO"
 .BR sed (1).
 
 .SH "AUTHOR"
-Timo Savinen <tjsa@iki.fi >
+Timo Savinen <tjsa@iki.fi>
