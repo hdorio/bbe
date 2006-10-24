@@ -1,3 +1,8 @@
+2006-10-23  Timo Savinen <tjsa@iki.fi>
+
+    * Version 0.2.0
+    * Infinite loop in case of zero size input corrected
+
 2006-03-13  Timo Savinen <tjsa@iki.fi>
 
     * Version 0.1.9

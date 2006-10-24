@@ -6,7 +6,7 @@
 @finalout
 @c %**end of header
 
-@set VERSION 0.1.9
+@set VERSION 0.2.0
 
 @copying
 This file documents version @value{VERSION} of @command{bbe}, a binary block editor. 

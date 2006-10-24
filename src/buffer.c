@@ -185,7 +185,7 @@ read_input_stream()
          read_count += last_read;
     } while (in_stream != NULL && read_count < to_be_read);
 
-    if (read_count < to_be_read) in_buffer.stream_end = buffer_write_pos + read_count - 1;
+    if (read_count < to_be_read) in_buffer.stream_end = buffer_write_pos + read_count - (read_count ? 1 : 0);
 
     return read_count;
 }
