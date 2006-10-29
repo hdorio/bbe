@@ -20,7 +20,7 @@
  *
  */
 
-/* $Id: buffer.c,v 1.35 2005/11/14 10:40:47 timo Exp $ */
+/* $Id: buffer.c,v 1.36 2006-10-24 16:50:54 timo Exp $ */
 
 #include "bbe.h"
 #include <stdlib.h>
@@ -185,7 +185,7 @@ read_input_stream()
          read_count += last_read;
     } while (in_stream != NULL && read_count < to_be_read);
 
-    if (read_count < to_be_read) in_buffer.stream_end = buffer_write_pos + read_count - (read_count ? 1 : 0);
+    if (read_count < to_be_read) in_buffer.stream_end = buffer_write_pos + read_count - 1;
 
     return read_count;
 }
@@ -217,10 +217,11 @@ block_end_pos()
 inline int 
 get_next_byte()
 {
-    if(in_buffer.read_pos >= in_buffer.low_pos)
+    if(in_buffer.read_pos >= in_buffer.low_pos) 
     {
-        if(read_input_stream() && in_buffer.block_end == NULL) mark_block_end();
-    } 
+        read_input_stream(); 
+        if(in_buffer.block_end == NULL) mark_block_end();
+    }
 
     if(in_buffer.stream_end != NULL)
     {
@@ -365,11 +366,18 @@ find_block()
     found = 0;
 
     if(end_of_stream() && last_byte()) return 0;
+
+    if(in_buffer.read_pos == NULL)  // first read
+    {
+        if(!read_input_stream()) return 0;  // zero size input
+    }
+    
     in_buffer.block_offset = 0;
+
 
     do
     {
-        if(in_buffer.read_pos >= in_buffer.low_pos || in_buffer.read_pos == NULL) read_input_stream();
+        if(in_buffer.read_pos >= in_buffer.low_pos) read_input_stream();
 
         if(last_byte()) in_buffer.read_pos++;
         in_buffer.block_end = NULL;

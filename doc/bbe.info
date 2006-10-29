@@ -1,6 +1,6 @@
 This is bbe.info, produced by makeinfo version 4.8 from bbe.texi.
 
-   This file documents version 0.2.0 of `bbe', a binary block editor.
+   This file documents version 0.2.1 of `bbe', a binary block editor.
 
    Copyright (C) 2005 Timo Savinen
 
@@ -23,7 +23,7 @@ File: bbe.info,  Node: Top,  Next: Overview,  Prev: (dir),  Up: (dir)
 bbe
 ***
 
-This file documents version 0.2.0 of `bbe', a binary block editor.
+This file documents version 0.2.1 of `bbe', a binary block editor.
 
    Copyright (C) 2005 Timo Savinen
 
