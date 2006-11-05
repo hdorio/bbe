@@ -6,7 +6,14 @@
 @finalout
 @c %**end of header
 
-@set VERSION 0.2.1
+@set VERSION 0.2.2
+
+@ifinfo 
+@dircategory Utilities 
+@direntry 
+* bbe: (bbe).                 Binary Block Editor. 
+@end direntry
+@end ifinfo
 
 @copying
 This file documents version @value{VERSION} of @command{bbe}, a binary block editor. 
@@ -404,6 +411,9 @@ Performs exclusive or with @var{c} on block contents.
 
 @item ~
 Performs binary negation on block contents.
+
+@item x
+Exchange the contents of nibbles (half an octet) of bytes.
 @end table
 
 @node Limits, , Commands, Invoking bbe
@@ -514,7 +524,7 @@ Example output:
 @*
 
 @item bbe -b "/Linux/:5" -s -e "N;D;A \x0a" /bin/* | uniq
-Print the files names of those programs in /bin directory which contains word @samp{Linux}.
+Print the file names of those programs in /bin directory which contains word @samp{Linux}.
 Example output:
 @example
 /bin/loadkeys:

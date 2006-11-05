@@ -1,6 +1,11 @@
 This is bbe.info, produced by makeinfo version 4.8 from bbe.texi.
 
-   This file documents version 0.2.1 of `bbe', a binary block editor.
+INFO-DIR-SECTION Utilities
+START-INFO-DIR-ENTRY
+* bbe: (bbe).                 Binary Block Editor.
+END-INFO-DIR-ENTRY
+
+   This file documents version 0.2.2 of `bbe', a binary block editor.
 
    Copyright (C) 2005 Timo Savinen
 
@@ -23,7 +28,7 @@ File: bbe.info,  Node: Top,  Next: Overview,  Prev: (dir),  Up: (dir)
 bbe
 ***
 
-This file documents version 0.2.1 of `bbe', a binary block editor.
+This file documents version 0.2.2 of `bbe', a binary block editor.
 
    Copyright (C) 2005 Timo Savinen
 
@@ -407,6 +412,9 @@ block, first byte is number zero.
 `~'
      Performs binary negation on block contents.
 
+`x'
+     Exchange the contents of nibbles (half an octet) of bytes.
+
 
 File: bbe.info,  Node: Limits,  Prev: Commands,  Up: Invoking bbe
 
@@ -503,7 +511,7 @@ Few examples:
           69194:x5f x28 x02 x42 x36 x5f x81 x64 x41 x05
 
 `bbe -b "/Linux/:5" -s -e "N;D;A \x0a" /bin/* | uniq'
-     Print the files names of those programs in /bin directory which
+     Print the file names of those programs in /bin directory which
      contains word `Linux'.  Example output:
           /bin/loadkeys:
           /bin/mkbimage:
@@ -546,15 +554,15 @@ problems.
 
 
 Tag Table:
-Node: Top781
-Node: Overview1841
-Node: Samples2328
-Node: Invoking bbe3726
-Node: Invocation4260
-Node: Block5275
-Node: Commands7321
-Node: Limits12090
-Node: bbe programs12468
-Node: Problems16854
+Node: Top900
+Node: Overview1960
+Node: Samples2447
+Node: Invoking bbe3845
+Node: Invocation4379
+Node: Block5394
+Node: Commands7440
+Node: Limits12278
+Node: bbe programs12656
+Node: Problems17041
 
 End Tag Table

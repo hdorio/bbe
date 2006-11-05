@@ -7,7 +7,7 @@
 <link title="Top" rel="top" href="#Top">
 <link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
 <!--
-This file documents version 0.2.1 of `bbe', a binary block editor.
+This file documents version 0.2.2 of `bbe', a binary block editor.
 
 Copyright (C) 2005 Timo Savinen
 
@@ -50,7 +50,7 @@ Up:&nbsp;<a rel="up" accesskey="u" href="#dir">(dir)</a>
 
 <h2 class="unnumbered">bbe</h2>
 
-<p>This file documents version 0.2.1 of <samp><span class="command">bbe</span></samp>, a binary block editor.
+<p>This file documents version 0.2.2 of <samp><span class="command">bbe</span></samp>, a binary block editor.
 
    <p>Copyright &copy; 2005 Timo Savinen
 
@@ -383,7 +383,9 @@ Separator <code>/</code> can be replaced by any character not present in <var>so
 
      <br><dt><code>^ </code><var>c</var><dd>Performs exclusive or with <var>c</var> on block contents.
 
-     <br><dt><code>~</code><dd>Performs binary negation on block contents. 
+     <br><dt><code>~</code><dd>Performs binary negation on block contents.
+
+     <br><dt><code>x</code><dd>Exchange the contents of nibbles (half an octet) of bytes. 
 </dl>
 
 <div class="node">
@@ -486,7 +488,7 @@ Example output:
      </pre>
      <p><br>
 
-     <br><dt>`<samp><span class="samp">bbe -b "/Linux/:5" -s -e "N;D;A \x0a" /bin/* | uniq</span></samp>'<dd>Print the files names of those programs in /bin directory which contains word `<samp><span class="samp">Linux</span></samp>'. 
+     <br><dt>`<samp><span class="samp">bbe -b "/Linux/:5" -s -e "N;D;A \x0a" /bin/* | uniq</span></samp>'<dd>Print the file names of those programs in /bin directory which contains word `<samp><span class="samp">Linux</span></samp>'. 
 Example output:
      <pre class="example">          /bin/loadkeys:
           /bin/mkbimage:

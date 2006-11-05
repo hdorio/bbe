@@ -438,6 +438,9 @@ execute_commands(struct command_list *c)
                 break;
             case 'w':
                 break;
+            case 'x':
+                put_byte(((*out_buffer.write_pos << 4) & 0xf0) | ((*out_buffer.write_pos >> 4) & 0x0f));
+                break;
         }
         c = c->next;
     }

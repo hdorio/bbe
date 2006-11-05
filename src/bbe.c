@@ -75,7 +75,7 @@ char *convert_strings[] = {
 #define BLOCK_START_COMMANDS "DIJLFBN>"
 
 /* commands to be executed for each byte  */
-#define BYTE_COMMANDS "acdirsywjpl&|^~uf"
+#define BYTE_COMMANDS "acdirsywjpl&|^~ufx"
 
 /* commands to be executed at end of buffer  */
 #define BLOCK_END_COMMANDS "A<"
@@ -575,6 +575,7 @@ parse_command(char *command_string)
             if(new->s1_len != 1)  panic("Error in command",command_string,NULL);
             break;
         case '~':
+        case 'x':
             if(i != 1 || strlen(token[0]) > 1) panic("Error in command",command_string,NULL);
             break;
         case 'u':

@@ -20,7 +20,7 @@
  *
  */
 
-/* $Id: buffer.c,v 1.36 2006-10-24 16:50:54 timo Exp $ */
+/* $Id: buffer.c,v 1.37 2006-11-02 17:11:36 timo Exp $ */
 
 #include "bbe.h"
 #include <stdlib.h>

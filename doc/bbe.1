@@ -25,7 +25,7 @@
 .\" .br        insert line break
 .\" .sp <n>    insert n+1 empty lines
 .\" for manpage-specific macros, see man(7)
-.TH "BBE" "1" "2006-03-14" "" ""
+.TH "BBE" "1" "2006-11-02" "" ""
 .SH "NAME"
 bbe \- binary block editor
 .SH "SYNOPSIS"
@@ -190,6 +190,9 @@ All bytes from start of the block to offset \fIn\fR are replaced by \fIc\fR.
 .TP 
 f \fIn\fR \fIc\fR
 All bytes starting from offset \fIn\fR to end of the block are replaced by \fIc\fR.
+.TP 
+x
+Exchange the contents of nibbles (half an octet) of bytes.
 .PP 
 Nonvisible characters in strings can be escaped same way as in block definition strings. Character '/' in s and y commands can be any visible character.
 .PP 
